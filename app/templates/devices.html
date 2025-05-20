@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+
+{% block head %}
+<title>Gestione Dispositivi - {{ title }}</title>
+{% endblock %}
+
+{% block content %}
+<h1 class="mb-4">Gestione Dispositivi</h1>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h3>Dispositivi Esistenti</h3>
+            </div>
+            <div class="card-body">
+                <div id="devices-list" class="list-group mb-3">
+                    <!-- I dispositivi verranno caricati dinamicamente qui -->
+                </div>
+                <button id="refresh-devices-btn" class="btn btn-primary">Aggiorna Lista</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h3>Crea Nuovo Dispositivo</h3>
+            </div>
+            <div class="card-body">
+                <form id="create-device-form">
+                    <div class="mb-3">
+                        <label for="device-name-input" class="form-label">Nome Dispositivo</label>
+                        <input type="text" class="form-control" id="device-name-input" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="device-type-dropdown" class="form-label">Tipo di Dispositivo</label>
+                        <select id="device-type-dropdown" class="form-select" required>
+                            <option value="" selected disabled>Seleziona un tipo di dispositivo...</option>
+                        </select>
+                    </div>
+
+                    <h5 class="mt-4">Attributi (opzionali):</h5>
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <select id="attr-name-dropdown" class="form-select">
+                                <option value="" selected disabled>Seleziona attributo...</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <input type="number" class="form-control" id="attr-value-input" placeholder="Valore">
+                        </div>
+                        <div class="col-md-4">
+                            <div id="attr-unit-display" class="form-text"></div>
+                        </div>
+                    </div>
+
+                    <button type="button" id="add-attr-btn" class="btn btn-secondary mb-3">Aggiungi Attributo</button>
+
+                    <div id="attributes-list" class="mb-3">
+                        <!-- Gli attributi aggiunti verranno visualizzati qui -->
+                    </div>
+
+                    <button type="submit" class="btn btn-success">Crea Dispositivo</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal per dettagli dispositivo -->
+<div class="modal fade" id="device-details-modal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Dettagli Dispositivo</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="device-details-content">
+                <!-- I dettagli del dispositivo verranno caricati qui -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Chiudi</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', path='/js/devices.js') }}"></script>
+{% endblock %}

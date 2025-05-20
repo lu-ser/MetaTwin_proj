@@ -1,5 +1,7 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
 from app.api.router import router
 from app.db.database import connect_to_mongo, close_mongo_connection
 from app.config import settings, ROOT_DIR, DATA_DIR
@@ -34,6 +36,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
+# Configurazione StaticFiles per servire file statici
+app.mount("/static", StaticFiles(directory=str(ROOT_DIR / "app" / "static")), name="static")
+
+# Configurazione Templates Jinja2
+templates = Jinja2Templates(directory=str(ROOT_DIR / "app" / "templates"))
+
 # Collega le API
 app.include_router(router, prefix=settings.API_PREFIX)
 
@@ -55,7 +64,7 @@ async def root():
 
 if __name__ == "__main__":
     uvicorn.run(
-        "app.main:app", 
+        "main:app", 
         host=settings.HOST, 
         port=settings.PORT, 
         reload=settings.DEBUG

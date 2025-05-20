@@ -1,0 +1,125 @@
+/* Stili personalizzati per la Digital Twin Platform */
+
+/* Stili generali */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f8f9fa;
+}
+
+.container {
+    max-width: 1200px;
+}
+
+/* Navbar */
+.navbar-brand {
+    font-size: 1.5rem;
+    font-weight: 600;
+}
+
+/* Cards */
+.card {
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    margin-bottom: 20px;
+}
+
+.card-header {
+    background-color: #f0f3f5;
+    border-bottom: 1px solid #dee2e6;
+    font-weight: 600;
+}
+
+/* Bottoni */
+.btn {
+    border-radius: 6px;
+}
+
+.btn-primary {
+    background-color: #0d6efd;
+}
+
+.btn-success {
+    background-color: #198754;
+}
+
+.btn-danger {
+    background-color: #dc3545;
+}
+
+/* Selettori */
+.form-select,
+.form-control {
+    border-radius: 6px;
+    border-color: #dee2e6;
+}
+
+/* Liste */
+.list-group-item {
+    border-color: #dee2e6;
+}
+
+/* Footer */
+.footer {
+    background-color: #f8f9fa;
+    border-top: 1px solid #dee2e6;
+}
+
+/* Grafico */
+#sensor-data-graph,
+#ontology-graph {
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    background-color: #ffffff;
+    padding: 10px;
+}
+
+/* Dashboard */
+#digital-twin-info {
+    background-color: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+    border: 1px solid #dee2e6;
+}
+
+/* Attributi */
+#attributes-list {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+/* Jumbotron (homepage) */
+.jumbotron {
+    background-color: #ffffff;
+    padding: 2rem;
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    margin-bottom: 2rem;
+}
+
+/* Caricamento */
+.loading {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 200px;
+}
+
+.loading-spinner {
+    width: 3rem;
+    height: 3rem;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .card {
+        margin-bottom: 15px;
+    }
+
+    h1 {
+        font-size: 1.8rem;
+    }
+
+    h3 {
+        font-size: 1.4rem;
+    }
+}

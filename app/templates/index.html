@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block head %}
+<title>Home - {{ title }}</title>
+{% endblock %}
+
+{% block content %}
+<div class="jumbotron">
+    <h1 class="display-4">Benvenuto nella {{ title }}</h1>
+    <p class="lead">Un sistema completo per gestire, monitorare e visualizzare i tuoi Digital Twins.</p>
+    <hr class="my-4">
+    <p>Utilizza la barra di navigazione per accedere alle diverse funzionalità della piattaforma.</p>
+</div>
+
+<div class="row mt-5">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Dashboard</h5>
+                <p class="card-text">Visualizza i dati dei tuoi Digital Twins in tempo reale.</p>
+                <a href="/dashboard" class="btn btn-primary">Vai alla Dashboard</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Gestione Dispositivi</h5>
+                <p class="card-text">Crea, modifica e gestisci i tuoi dispositivi IoT.</p>
+                <a href="/devices" class="btn btn-primary">Gestisci Dispositivi</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Ontologia</h5>
+                <p class="card-text">Esplora la gerarchia delle classi di sensori e dispositivi.</p>
+                <a href="/ontology" class="btn btn-primary">Visualizza Ontologia</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
