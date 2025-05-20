@@ -5,7 +5,7 @@ from app.models.digital_twin import DigitalTwin
 from app.models.sensor import SensorMeasurement
 from app.db.crud import get_document, update_document, delete_document, list_documents
 from app.services.digital_twin_service import add_sensor_data_to_digital_twin, generate_random_sensor_data
-
+from app.ontology.manager import OntologyManager
 router = APIRouter()
 
 @router.get("/", response_model=List[DigitalTwin])

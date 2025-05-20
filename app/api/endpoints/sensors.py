@@ -55,7 +55,7 @@ async def get_sensor_hierarchy():
     
     return result
 
-@router.get("/compatibility", response_model=Dict[str, List[str]])
+@router.get("/compatibility", response_model=Dict[str, Any])
 async def check_sensors_compatibility(device_type: str):
     """Verifica quali sensori sono compatibili con un tipo di dispositivo"""
     ontology = OntologyManager()
