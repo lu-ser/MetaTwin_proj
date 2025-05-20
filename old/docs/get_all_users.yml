@@ -1,0 +1,17 @@
+# docs/get_all_users.yml
+summary: "Retrieve all users"
+description: "This endpoint retrieves all users stored in the database."
+operationId: "get_all_users"
+tags:
+  - User
+responses:
+  200:
+    description: "A list of all users"
+    content:
+      application/json:
+        schema:
+          type: array
+          items:
+            $ref: '#/components/schemas/User'
+  500:
+    description: "Error occurred while retrieving users"

@@ -1,0 +1,66 @@
+openapi: "3.0.0"
+info:
+  title: "Add Device to User API"
+  version: "1.0.0"
+  description: "API for adding a device to a specific user by user ID."
+
+paths:
+  /users/{user_id}/devices:
+    post:
+      summary: "Add a new device to a user"
+      operationId: "addDeviceToUser"
+      tags:
+        - User
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: "The ID of the user to add the device to."
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - attributes
+              properties:
+                name:
+                  type: string
+                  description: "Name of the device"
+                  example: "Heart Rate Monitor"
+                attributes:
+                  type: object
+                  description: "Attributes of the device"
+                  properties:
+                    min:
+                      type: integer
+                      description: "Minimum value"
+                      example: 60
+                    max:
+                      type: integer
+                      description: "Maximum value"
+                      example: 180
+                    mean:
+                      type: integer
+                      description: "Mean value"
+                      example: 120
+      responses:
+        201:
+          description: "Device added successfully"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Device added successfully"
+                  device_id:
+                    type: string
+                    example: "12345"
+        404:
+          description: "User not found"

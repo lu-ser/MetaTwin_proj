@@ -1,0 +1,306 @@
+{
+    "activeTime": {
+        "superclass": [
+            "steps"
+        ],
+        "unitMeasure":["seconds"],
+        "min":1,
+        "max":999999
+    },
+    "activeTimeSeconds": {
+        "superclass": [
+            "steps"
+        ],
+        "unitMeasure":["seconds"],
+        "min":1,
+        "max":999999
+    },
+    "activityName": {
+        "superclass": [
+            "userGeneratedData"
+        ],
+        "values":["Running","Swimming","Waliking"]
+    },
+    "altimeter": {
+        "superclass": [],
+        "unitMeasure":["meters"],
+        "min":0,
+        "max":999999
+    },
+    "averageHeartRate": {
+        "superclass": [
+            "heartRateMonitor"
+        ],
+        "unitMeasure":["bpm"],
+        "min":40,
+        "max":250,
+        "mean":80
+    },
+    "averageSpeedPace": {
+        "superclass": [
+            "physicalActivityPerformance"
+        ],
+         "unitMeasure":["km/s"],
+        "min":1,
+        "max":100,
+        "mean":10
+    },
+    "awakeningsCount": {
+        "superclass": [
+            "sleep"
+        ],
+
+        "unitMeasure":[""],
+        "min":0,
+        "max":50
+    },
+    "basalMetabolicRate": {
+        "superclass": [
+            "calories"
+        ],
+        "unitMeasure":["Kcal"],
+        "min":0,
+        "max":99999,
+        "mean":200
+    },
+    "bmi": {
+        "superclass": [
+            "userGeneratedData"
+        ],
+        "unitMeasure":["kg/m^2"],
+        "min":1,
+        "max":200,
+        "mean":25
+    },
+    "calories": {
+        "superclass": [
+            "activeTime",
+            "activeTimeSeconds",
+            "elevation",
+            "minutesLightlyActive",
+            "minutesSedentary"
+        ],
+        "unitMeasure":["Kcal"],
+        "min":0,
+        "max":99999,
+        "mean":200
+    },
+    "distanceKilometers": {
+        "superclass": [
+            "gps"
+        ],
+        "unitMeasure":["Km"],
+        "min":0,
+        "max":99999,
+        "mean":10
+    },
+    "distanceMiles": {
+        "superclass": [
+            "gps"
+        ],
+        "unitMeasure":["Miles"],
+        "min":0,
+        "max":99999,
+        "mean":10
+    },
+    "duration": {
+        "superclass": [
+            "physicalActivityPerformance"
+        ],
+        "unitMeasure":["seconds"],
+        "min":1,
+        "max":999999
+    },
+    "efficiency": {
+        "superclass": [
+            "physicalActivityPerformance"
+        ],
+        "unitMeasure":["%"],
+        "min":1,
+        "max":100
+    },
+    "elevation": {
+        "superclass": [
+            "gps"
+        ],
+        "unitMeasure":["m"],
+        "min":0,
+        "max":2000,
+        "mean":10
+    },
+    "fat": {
+        "superclass": [
+            "userGeneratedData"
+        ],
+    "unitMeasure":["%"],
+    "min":0,
+    "max":2000,
+    "mean":10
+    },
+    "gps": {
+        "superclass": []
+    },
+    "heartRateMonitor": {
+        "superclass": []
+    },
+    "height": {
+        "superclass": [
+            "userGeneratedData"
+        ],
+        "unitMeasure":["m"],
+        "min":1,
+        "max":2,
+        "mean":1.8
+    },
+    "inactive": {
+        "superclass": [
+            "physicalActivityPerformance"
+        ],
+        "unitMeasure":["hours"],
+        "min":0,
+        "max":9999,
+        "mean":10
+    },
+    "maxSpeedBestPace": {
+        "superclass": [
+            "physicalActivityPerformance"
+        ],
+        "unitMeasure":["km/h"],
+        "min":0,
+        "max":2000,
+        "mean":15
+    },
+    "maximunHeartRate": {
+        "superclass": [
+            "heartRateMonitor"
+        ],
+        "unitMeasure":["bpm"],
+        "min":110,
+        "max":250,
+        "mean":150
+    },
+    "minutesAfterWakeup": {
+        "superclass": [
+            "sleep"
+        ],
+        "unitMeasure":["minutes"],
+        "min":0,
+        "max":250,
+        "mean":5
+    },
+    "minutesAsleep": {
+        "superclass": [
+            "sleep"
+        ],
+        "unitMeasure":["minutes"],
+        "min":0,
+        "max":500,
+        "mean":200
+    },
+    "minutesAwake": {
+        "superclass": [
+            "sleep"
+        ],
+        "unitMeasure":["minutes"],
+        "min":0,
+        "max":960,
+        "mean":500
+    },
+    "minutesFairlyActive": {
+        "superclass": [
+            "steps"
+        ],
+        "unitMeasure":["minutes"],
+        "min":0,
+        "max":100,
+        "mean":30
+    },
+    "minutesLightlyActive": {
+        "superclass": [
+            "steps"
+        ],
+        "unitMeasure":["minutes"],
+        "min":0,
+        "max":100,
+        "mean":30
+    },
+    "minutesSedentary": {
+        "superclass": [
+            "steps"
+        ],
+        "unitMeasure":["minutes"],
+        "min":0,
+        "max":100,
+        "mean":30
+    },
+    "minutesToFallAsleep": {
+        "superclass": [
+            "sleep"
+        ],
+        "unitMeasure":["minutes"],
+        "min":0,
+        "max":100,
+        "mean":30
+    },
+    "minutesVeryActive": {
+        "superclass": [
+            "steps"
+        ],
+        "unitMeasure":["minutes"],
+        "min":0,
+        "max":100,
+        "mean":30
+    },
+    "percentActive": {
+        "superclass": [
+            "physicalActivityPerformance"
+        ],
+        "unitMeasure":["%"],
+        "min":0,
+        "max":100,
+        "mean":50
+    },
+    "physicalActivityPerformance": {
+        "superclass": []
+    },
+    "sleep": {
+        "superclass": []
+    },
+    "steps": {
+        "superclass": [
+            "3axisAccelerometer",
+            "3axisGyroscope"
+        ],
+        "unitMeasure":[""],
+        "min":0,
+        "max":10000,
+        "mean":3000
+    },
+    "timeInBed": {
+        "superclass": [
+            "sleep"
+        ],
+        "unitMeasure":["minutes"],
+        "min":0,
+        "max":200,
+        "mean":100
+    },
+    "userGeneratedData": {
+        "superclass": []
+    },
+    "weight": {
+        "superclass": [
+            "userGeneratedData"
+        ],
+        "unitMeasure":["Kg"],
+        "min":0,
+        "max":100,
+        "mean":50
+    },
+    "3axisAccelerometer": {
+        "superclass": []
+    },
+    "3axisGyroscope": {
+        "superclass": []
+    }
+}

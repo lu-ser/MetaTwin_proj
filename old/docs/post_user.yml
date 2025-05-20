@@ -1,0 +1,30 @@
+# docs/post_user.yml
+summary: "Add a new user"
+description: "This endpoint adds a new user to the database. The user data must be provided in the request body."
+operationId: "add_user"
+tags:
+  - User
+requestBody:
+  required: true
+  content:
+    application/json:
+      schema:
+        $ref: '#/components/schemas/User'
+responses:
+  201:
+    description: "User created successfully"
+    content:
+      application/json:
+        schema:
+          type: object
+          properties:
+            message:
+              type: string
+              example: "User added successfully"
+            user_id:
+              type: string
+              example: "5f2b5bcd62366b1971e1b798"
+  400:
+    description: "Invalid user data provided"
+  500:
+    description: "Error occurred while creating the user"

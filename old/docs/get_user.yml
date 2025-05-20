@@ -1,0 +1,24 @@
+# docs/get_user.yml
+summary: "Retrieve a specific user"
+description: "This endpoint retrieves a single user based on user ID provided in the path."
+operationId: "get_user"
+tags:
+  - User
+parameters:
+  - in: path
+    name: user_id
+    required: true
+    schema:
+      type: string
+    description: "The unique identifier of the user to retrieve."
+responses:
+  200:
+    description: "Details of the specified user"
+    content:
+      application/json:
+        schema:
+          $ref: '#/components/schemas/User'
+  404:
+    description: "User not found"
+  500:
+    description: "Error occurred while retrieving the user"

@@ -1,0 +1,53 @@
+# docs/update_device.yml
+openapi: "3.0.0"
+info:
+  title: "Update Device API"
+  version: "1.0.0"
+  description: "API for updating a specific device of a user by user ID and device ID."
+
+paths:
+  /users/{user_id}/devices/{device_id}:
+    put:
+      summary: "Update a specific device of a user"
+      operationId: "updateDevice"
+      tags:
+        - User
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: "The ID of the user whose device is to be updated."
+        - name: device_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: "The ID of the device to update."
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  example: "Updated Device Name"
+                attributes:
+                  type: object
+                  additionalProperties: true
+      responses:
+        200:
+          description: "Device updated successfully"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Device updated successfully"
+        404:
+          description: "User or Device not found"

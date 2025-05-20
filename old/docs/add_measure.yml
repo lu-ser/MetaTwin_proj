@@ -1,0 +1,43 @@
+# docs/add_measure.yml
+summary: "Add measure to a device of a user"
+description: "This endpoint adds a new measure to a specific device of a user."
+operationId: "add_measure"
+tags:
+  - User
+parameters:
+  - name: user_id
+    in: path
+    required: true
+    schema:
+      type: string
+  - name: device_id
+    in: path
+    required: true
+    schema:
+      type: string
+requestBody:
+  required: true
+  content:
+    application/json:
+      schema:
+        type: object
+        properties:
+          measureType:
+            type: string
+            example: "temperature"
+          value:
+            type: number
+            example: 98.6
+responses:
+  200:
+    description: "Measure added successfully"
+    content:
+      application/json:
+        schema:
+          type: object
+          properties:
+            message:
+              type: string
+              example: "Measure added successfully"
+  404:
+    description: "Device or user not found"
