@@ -1,11 +1,13 @@
 # app/api/endpoints/digital_twins.py
-from fastapi import APIRouter, HTTPException, Body, Query
+from fastapi import APIRouter, HTTPException, Body, Query, Depends
 from typing import List, Dict, Any, Optional
 from app.models.digital_twin import DigitalTwin
 from app.models.sensor import SensorMeasurement
 from app.db.crud import get_document, update_document, delete_document, list_documents
 from app.services.digital_twin_service import add_sensor_data_to_digital_twin, generate_random_sensor_data
 from app.ontology.manager import OntologyManager
+from app.api.auth import get_device_by_api_key, verify_device_ownership
+
 router = APIRouter()
 
 @router.get("/", response_model=List[DigitalTwin])
@@ -27,11 +29,26 @@ async def get_digital_twin(digital_twin_id: str):
     return digital_twin
 
 @router.post("/{digital_twin_id}/data", status_code=201)
-async def add_sensor_measurement(digital_twin_id: str, measurement: SensorMeasurement):
-    """Aggiungi una nuova misurazione al digital twin"""
+async def add_sensor_measurement(
+    digital_twin_id: str, 
+    measurement: SensorMeasurement,
+    authenticated_device = Depends(get_device_by_api_key)
+):
+    """
+    Aggiungi una nuova misurazione al digital twin
+    
+    Richiede autenticazione tramite API key del dispositivo
+    """
     dt = await get_document("digital_twins", digital_twin_id)
     if not dt:
         raise HTTPException(status_code=404, detail="Digital Twin non trovato")
+    
+    # Verifica che il digital twin appartenga al dispositivo autenticato
+    if dt.get("device_id") != authenticated_device.get("id"):
+        raise HTTPException(
+            status_code=403,
+            detail="Non sei autorizzato a inviare dati a questo Digital Twin"
+        )
     
     # Verifica che il sensore sia compatibile con il digital twin
     if measurement.attribute_name not in dt.get("compatible_sensors", []):

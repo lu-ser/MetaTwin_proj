@@ -45,6 +45,17 @@ async def devices(request: Request):
         }
     )
 
+@router.get("/users", response_class=HTMLResponse)
+async def users(request: Request):
+    """Renderizza la pagina di gestione degli utenti"""
+    return templates.TemplateResponse(
+        "users.html", 
+        {
+            "request": request, 
+            "title": settings.PROJECT_NAME
+        }
+    )
+
 @router.get("/ontology", response_class=HTMLResponse)
 async def ontology(request: Request, class_name: str = Query(None)):
     """Renderizza la pagina di visualizzazione dell'ontologia

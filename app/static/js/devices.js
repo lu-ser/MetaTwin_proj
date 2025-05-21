@@ -1,4 +1,4 @@
-// devices.js - Script per la pagina dei dispositivi
+// devices.js - Script aggiornato per la pagina dei dispositivi
 
 document.addEventListener('DOMContentLoaded', function () {
     // Elementi DOM
@@ -11,6 +11,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const addAttrBtn = document.getElementById('add-attr-btn');
     const attributesList = document.getElementById('attributes-list');
     const createDeviceForm = document.getElementById('create-device-form');
+    const ownerIdInput = document.getElementById('owner-id-input');
 
     // Attributi correnti del dispositivo
     const currentAttributes = {};
@@ -18,6 +19,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // Carica liste iniziali
     loadDevicesList();
     loadDeviceTypes();
+    loadUsersList(); // Nuovo: carica lista utenti
 
     // Event listeners
     refreshDevicesBtn.addEventListener('click', loadDevicesList);
@@ -50,6 +52,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         <small>${device.device_type}</small>
                     </div>
                     <p class="mb-1">ID: ${device.id}</p>
+                    ${device.owner_id ? `<small>Proprietario: ${device.owner_id}</small><br>` : ''}
                     ${device.digital_twin_id ? `<small>Digital Twin: ${device.digital_twin_id}</small>` : ''}
                 `;
 
@@ -63,6 +66,32 @@ document.addEventListener('DOMContentLoaded', function () {
             });
         } catch (error) {
             console.error('Errore nel caricamento dei dispositivi:', error);
+        }
+    }
+
+    // Funzione per caricare la lista degli utenti
+    async function loadUsersList() {
+        try {
+            const users = await apiRequest('/users/');
+
+            // Se la lista utenti è vuota, crea un utente di esempio
+            if (users.length === 0) {
+                await apiRequest('/users/', 'POST', {
+                    name: "Utente Demo",
+                    email: "demo@example.com"
+                });
+            }
+
+            // Aggiorna il campo input owner_id con il suggerimento
+            if (ownerIdInput) {
+                const updatedUsers = await apiRequest('/users/');
+                if (updatedUsers.length > 0) {
+                    // Solo per il suggerimento, non è necessario popolare una dropdown completa
+                    ownerIdInput.placeholder = `Es: ${updatedUsers[0].id}`;
+                }
+            }
+        } catch (error) {
+            console.error('Errore nel caricamento degli utenti:', error);
         }
     }
 
@@ -234,6 +263,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         const deviceName = document.getElementById('device-name-input').value.trim();
         const deviceType = deviceTypeDropdown.value;
+        const ownerId = ownerIdInput ? ownerIdInput.value.trim() : null;
 
         if (!deviceName) {
             showError('Inserisci un nome per il dispositivo');
@@ -252,9 +282,14 @@ document.addEventListener('DOMContentLoaded', function () {
             attributes: currentAttributes
         };
 
+        // Aggiungi owner_id se specificato
+        if (ownerId) {
+            deviceData.owner_id = ownerId;
+        }
+
         try {
             // Crea il dispositivo
-            await apiRequest('/devices/', 'POST', deviceData);
+            const newDevice = await apiRequest('/devices/', 'POST', deviceData);
 
             // Mostra messaggio di successo
             showSuccess('Dispositivo creato con successo!');
@@ -266,8 +301,22 @@ document.addEventListener('DOMContentLoaded', function () {
             createDeviceForm.reset();
             attributesList.innerHTML = '';
             Object.keys(currentAttributes).forEach(key => delete currentAttributes[key]);
+
+            // Mostra i dettagli del nuovo dispositivo
+            showDeviceDetails(newDevice.id);
         } catch (error) {
             console.error('Errore nella creazione del dispositivo:', error);
+        }
+    }
+
+    // Funzione per rigenerare API key
+    async function regenerateApiKey(deviceId) {
+        try {
+            const result = await apiRequest(`/devices/regenerate-api-key?device_id=${deviceId}`, 'POST');
+            return result.api_key;
+        } catch (error) {
+            console.error('Errore rigenerazione API key:', error);
+            throw error;
         }
     }
 
@@ -284,6 +333,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
             // Prepara il contenuto del modal
             const modalContent = document.getElementById('device-details-content');
+
+            // Formatta l'API key per la visualizzazione (mostra solo parte iniziale)
+            const apiKeyDisplay = device.api_key
+                ? `${device.api_key.substring(0, 10)}...`
+                : 'Nessuna API key generata';
 
             let attributesHtml = '<p>Nessun attributo definito.</p>';
             if (Object.keys(device.attributes).length > 0) {
@@ -318,7 +372,7 @@ document.addEventListener('DOMContentLoaded', function () {
                             
                             <div class="text-end">
                                 <a href="/api/v1/dashboard?dt=${digitalTwin.id}" class="btn btn-primary">
-                                    To to the Dashboard
+                                    Vai alla Dashboard
                                 </a>
                             </div>
                         </div>
@@ -326,11 +380,44 @@ document.addEventListener('DOMContentLoaded', function () {
                 `;
             }
 
+            // Sezione per API Key con pulsante di copia e rigenerazione
+            const apiKeyHtml = `
+                <div class="card mt-3">
+                    <div class="card-header">
+                        <h5>API Key</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="input-group mb-3">
+                            <input type="text" id="api-key-display" class="form-control" 
+                                value="${device.api_key || ''}" 
+                                placeholder="No API key" readonly>
+                            <button class="btn btn-outline-secondary" type="button" id="copy-api-key-btn">
+                                Copia
+                            </button>
+                        </div>
+                        <div class="d-flex justify-content-end">
+                            <button class="btn btn-warning" id="regenerate-api-key-btn">
+                                Rigenera API Key
+                            </button>
+                        </div>
+                        <div class="alert alert-info mt-3">
+                            <small>Questa API key è necessaria per autenticare il dispositivo quando invia dati al digital twin.</small>
+                        </div>
+                    </div>
+                </div>
+            `;
+
             modalContent.innerHTML = `
                 <div class="container-fluid">
                     <h3>${device.name}</h3>
                     <p><strong>ID:</strong> ${device.id}</p>
                     <p><strong>Tipo:</strong> ${device.device_type}</p>
+                    <p>
+                        <strong>Proprietario:</strong> 
+                        ${device.owner_id ? device.owner_id : 'Nessun proprietario'}
+                    </p>
+                    
+                    ${apiKeyHtml}
                     
                     <h5 class="mt-4">Attributi:</h5>
                     ${attributesHtml}
@@ -349,6 +436,33 @@ document.addEventListener('DOMContentLoaded', function () {
             // Mostra il modal
             const modal = new bootstrap.Modal(document.getElementById('device-details-modal'));
             modal.show();
+
+            // Aggiungi listener per il pulsante di copia API key
+            const copyApiKeyBtn = document.getElementById('copy-api-key-btn');
+            if (copyApiKeyBtn) {
+                copyApiKeyBtn.addEventListener('click', () => {
+                    const apiKeyInput = document.getElementById('api-key-display');
+                    apiKeyInput.select();
+                    document.execCommand('copy');
+                    showSuccess('API Key copiata negli appunti!');
+                });
+            }
+
+            // Aggiungi listener per il pulsante di rigenerazione API key
+            const regenerateApiKeyBtn = document.getElementById('regenerate-api-key-btn');
+            if (regenerateApiKeyBtn) {
+                regenerateApiKeyBtn.addEventListener('click', async () => {
+                    if (confirm('Sei sicuro di voler rigenerare l\'API key? I dispositivi che utilizzano la chiave precedente non potranno più autenticarsi.')) {
+                        try {
+                            const newApiKey = await regenerateApiKey(device.id);
+                            document.getElementById('api-key-display').value = newApiKey;
+                            showSuccess('API Key rigenerata con successo!');
+                        } catch (error) {
+                            showError('Errore durante la rigenerazione dell\'API key');
+                        }
+                    }
+                });
+            }
 
             // Aggiungi listener per il pulsante di eliminazione
             document.getElementById('delete-device-btn').addEventListener('click', async () => {

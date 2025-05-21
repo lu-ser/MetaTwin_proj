@@ -1,13 +1,14 @@
-# app/models/device.py
 from pydantic import BaseModel, Field, validator
 from typing import Dict, List, Optional, Any
 import uuid
+import secrets
 from app.ontology.manager import OntologyManager
 
 class SensorAttribute(BaseModel):
     """Rappresenta un attributo di un sensore con valore e unità di misura"""
     value: float
     unit_measure: str = ""
+
 
 class Device(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
@@ -17,6 +18,7 @@ class Device(BaseModel):
     metadata: Dict[str, Any] = Field(default_factory=dict)
     digital_twin_id: Optional[str] = None
     owner_id: Optional[str] = None
+    api_key: str = Field(default_factory=lambda: secrets.token_urlsafe(32))
     
     @validator('device_type')
     def validate_device_type(cls, v):

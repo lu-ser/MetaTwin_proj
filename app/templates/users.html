@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+
+{% block head %}
+<title>Gestione Utenti - {{ title }}</title>
+{% endblock %}
+
+{% block content %}
+<h1 class="mb-4">Gestione Utenti</h1>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h3>Utenti Esistenti</h3>
+            </div>
+            <div class="card-body">
+                <div id="users-list" class="list-group mb-3">
+                    <!-- Gli utenti verranno caricati dinamicamente qui -->
+                </div>
+                <button id="refresh-users-btn" class="btn btn-primary">Aggiorna Lista</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h3>Crea Nuovo Utente</h3>
+            </div>
+            <div class="card-body">
+                <form id="create-user-form">
+                    <div class="mb-3">
+                        <label for="user-name-input" class="form-label">Nome Utente</label>
+                        <input type="text" class="form-control" id="user-name-input" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="user-email-input" class="form-label">Email</label>
+                        <input type="email" class="form-control" id="user-email-input">
+                        <div class="form-text">Opzionale</div>
+                    </div>
+
+                    <button type="submit" class="btn btn-success">Crea Utente</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal per dettagli utente -->
+<div class="modal fade" id="user-details-modal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Dettagli Utente</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="user-details-content">
+                <!-- I dettagli dell'utente verranno caricati qui -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Chiudi</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', path='/js/users.js') }}"></script>
+{% endblock %}
