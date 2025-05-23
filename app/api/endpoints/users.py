@@ -1,14 +1,15 @@
 # app/api/endpoints/users.py
-from fastapi import APIRouter, HTTPException, Body, Path
+from fastapi import APIRouter, HTTPException, Body, Path, Depends
 from typing import List, Dict, Any, Optional
 
 from app.models.user import User
 from app.db.crud import create_document, get_document, update_document, delete_document, list_documents
+from app.api.auth_service import get_current_active_user
 
 router = APIRouter()
 
 @router.post("/", response_model=User, status_code=201)
-async def create_user(user: User):
+async def create_user(user: User, current_user: Dict[str, Any] = Depends(get_current_active_user)):
     """Crea un nuovo utente"""
     # Verifica se esiste già un utente con la stessa email
     if user.email:
@@ -41,8 +42,17 @@ async def get_user(user_id: str):
     return user
 
 @router.put("/{user_id}", response_model=User)
-async def update_user(user_id: str, user_update: User = Body(...)):
+async def update_user(
+    user_id: str, 
+    user_update: User = Body(...), 
+    current_user: Dict[str, Any] = Depends(get_current_active_user)
+):
     """Aggiorna un utente esistente"""
+    # Verifica se l'utente corrente sta modificando se stesso o ha i privilegi per farlo
+    if current_user["id"] != user_id:
+        # Qui potresti aggiungere ulteriori controlli per i ruoli, ad esempio admin
+        raise HTTPException(status_code=403, detail="Non hai i permessi per modificare questo utente")
+    
     existing_user = await get_document("users", user_id)
     if not existing_user:
         raise HTTPException(status_code=404, detail="Utente non trovato")
@@ -55,6 +65,11 @@ async def update_user(user_id: str, user_update: User = Body(...)):
     
     # Aggiorna l'utente
     update_data = user_update.dict(exclude_unset=True)
+    
+    # Assicurati di non sovrascrivere il password hash
+    if "hashed_password" in update_data and not update_data["hashed_password"]:
+        update_data.pop("hashed_password")
+    
     update_result = await update_document("users", user_id, update_data)
     
     if not update_result:
@@ -64,8 +79,16 @@ async def update_user(user_id: str, user_update: User = Body(...)):
     return updated_user
 
 @router.delete("/{user_id}", status_code=204)
-async def delete_user(user_id: str):
+async def delete_user(
+    user_id: str, 
+    current_user: Dict[str, Any] = Depends(get_current_active_user)
+):
     """Elimina un utente"""
+    # Verifica se l'utente corrente sta eliminando se stesso o ha i privilegi per farlo
+    if current_user["id"] != user_id:
+        # Qui potresti aggiungere ulteriori controlli per i ruoli, ad esempio admin
+        raise HTTPException(status_code=403, detail="Non hai i permessi per eliminare questo utente")
+    
     user = await get_document("users", user_id)
     if not user:
         raise HTTPException(status_code=404, detail="Utente non trovato")

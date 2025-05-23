@@ -1,0 +1,383 @@
+{% extends "base.html" %}
+
+{% block head %}
+<style>
+    .profile-card {
+        max-width: 800px;
+        margin: 0 auto;
+    }
+
+    .profile-section {
+        margin-bottom: 30px;
+    }
+
+    .password-section {
+        background-color: #f8f9fa;
+        padding: 20px;
+        border-radius: 5px;
+    }
+
+    .api-key-container {
+        background-color: #f8f9fa;
+        padding: 15px;
+        border-radius: 5px;
+        margin-top: 10px;
+    }
+
+    .api-key {
+        font-family: monospace;
+        padding: 10px;
+        background-color: #e9ecef;
+        border-radius: 3px;
+        position: relative;
+    }
+
+    .api-key-actions {
+        margin-top: 15px;
+    }
+
+    #apiKeyValue {
+        word-break: break-all;
+    }
+
+    .alert-dismissible {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 9999;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row mt-4">
+    <div class="col-md-12">
+        <div class="card profile-card">
+            <div class="card-header">
+                <h2>User Profile</h2>
+            </div>
+            <div class="card-body">
+                <!-- Profile information -->
+                <div class="profile-section">
+                    <h4>Personal Information</h4>
+                    <div class="alert alert-danger" id="profileError" style="display: none;"></div>
+
+                    <form id="profileForm">
+                        <div class="mb-3">
+                            <label for="profileName" class="form-label">Full Name</label>
+                            <input type="text" class="form-control" id="profileName" placeholder="Your name">
+                        </div>
+                        <div class="mb-3">
+                            <label for="profileEmail" class="form-label">Email</label>
+                            <input type="email" class="form-control" id="profileEmail" placeholder="Your email"
+                                readonly>
+                            <div class="form-text">Email cannot be changed.</div>
+                        </div>
+                        <button type="button" class="btn btn-primary" id="saveProfileBtn">Save Changes</button>
+                    </form>
+                </div>
+
+                <!-- Password change -->
+                <div class="profile-section password-section">
+                    <h4>Change Password</h4>
+                    <div class="alert alert-danger" id="passwordError" style="display: none;"></div>
+
+                    <form id="passwordForm">
+                        <div class="mb-3">
+                            <label for="currentPassword" class="form-label">Current Password</label>
+                            <input type="password" class="form-control" id="currentPassword"
+                                placeholder="Current password">
+                        </div>
+                        <div class="mb-3">
+                            <label for="newPassword" class="form-label">New Password</label>
+                            <input type="password" class="form-control" id="newPassword" placeholder="New password">
+                        </div>
+                        <div class="mb-3">
+                            <label for="confirmPassword" class="form-label">Confirm New Password</label>
+                            <input type="password" class="form-control" id="confirmPassword"
+                                placeholder="Confirm new password">
+                            <div class="form-text">Password must be at least 8 characters long.</div>
+                        </div>
+                        <button type="button" class="btn btn-warning" id="changePasswordBtn">Change Password</button>
+                    </form>
+                </div>
+
+                <!-- API key management -->
+                <div class="profile-section">
+                    <h4>API Keys</h4>
+                    <p>Use API keys to authenticate requests to the MetaTwin API.</p>
+
+                    <div id="apiKeyContainer" class="api-key-container" style="display: none;">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div>
+                                <strong>Your API Key</strong>
+                            </div>
+                            <div>
+                                <button class="btn btn-sm btn-outline-secondary" id="copyApiKeyBtn">
+                                    <i class="bi bi-clipboard"></i> Copy
+                                </button>
+                            </div>
+                        </div>
+                        <div class="api-key">
+                            <span id="apiKeyValue">••••••••••••••••••••••••••••••••</span>
+                        </div>
+                        <div class="api-key-actions">
+                            <button class="btn btn-sm btn-danger" id="revokeApiKeyBtn">Revoke API Key</button>
+                            <button class="btn btn-sm btn-outline-secondary" id="showApiKeyBtn">
+                                <i class="bi bi-eye"></i> Show
+                            </button>
+                        </div>
+                    </div>
+
+                    <button class="btn btn-primary mt-3" id="generateApiKeyBtn">Generate New API Key</button>
+                    <div class="form-text">
+                        <i class="bi bi-exclamation-triangle"></i> Generating a new key will invalidate any existing
+                        keys.
+                    </div>
+                </div>
+
+                <!-- Account management -->
+                <div class="profile-section mt-5">
+                    <h4 class="text-danger">Account Management</h4>
+                    <p>Permanently delete your account and all associated data.</p>
+                    <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#deleteAccountModal">
+                        Delete Account
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Account Modal -->
+<div class="modal fade" id="deleteAccountModal" tabindex="-1" aria-labelledby="deleteAccountModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title text-danger" id="deleteAccountModalLabel">Delete Account</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-danger">
+                    <i class="bi bi-exclamation-triangle-fill"></i> Warning: This action cannot be undone!
+                </div>
+                <p>Are you sure you want to delete your account? This will permanently remove:</p>
+                <ul>
+                    <li>Your profile information</li>
+                    <li>All your digital twins</li>
+                    <li>All associated data</li>
+                </ul>
+                <div class="mb-3">
+                    <label for="deleteConfirmPassword" class="form-label">Enter your password to confirm</label>
+                    <input type="password" class="form-control" id="deleteConfirmPassword" placeholder="Your password">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteAccountBtn">Delete My Account</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        loadUserProfile();
+
+        // Event listeners
+        document.getElementById('saveProfileBtn').addEventListener('click', saveProfile);
+        document.getElementById('changePasswordBtn').addEventListener('click', changePassword);
+        document.getElementById('generateApiKeyBtn').addEventListener('click', generateApiKey);
+        document.getElementById('revokeApiKeyBtn').addEventListener('click', revokeApiKey);
+        document.getElementById('showApiKeyBtn').addEventListener('click', toggleApiKeyVisibility);
+        document.getElementById('copyApiKeyBtn').addEventListener('click', copyApiKey);
+        document.getElementById('confirmDeleteAccountBtn').addEventListener('click', deleteAccount);
+    });
+
+    // Load user profile data
+    async function loadUserProfile() {
+        try {
+            const userData = await apiRequest('/users/me', 'GET');
+
+            // Fill profile form
+            document.getElementById('profileName').value = userData.name || '';
+            document.getElementById('profileEmail').value = userData.email || '';
+
+            // Check if user has API key
+            if (userData.has_api_key) {
+                document.getElementById('apiKeyContainer').style.display = 'block';
+            }
+
+        } catch (error) {
+            showError('profileError', 'Failed to load profile data: ' + error.message);
+        }
+    }
+
+    // Save profile changes
+    async function saveProfile() {
+        const name = document.getElementById('profileName').value;
+
+        try {
+            const response = await apiRequest('/users/me', 'PATCH', { name });
+            showSuccess('Profile updated successfully');
+        } catch (error) {
+            showError('profileError', error.message);
+        }
+    }
+
+    // Change password
+    async function changePassword() {
+        const currentPassword = document.getElementById('currentPassword').value;
+        const newPassword = document.getElementById('newPassword').value;
+        const confirmPassword = document.getElementById('confirmPassword').value;
+
+        // Validate
+        if (!currentPassword) {
+            return showError('passwordError', 'Current password is required');
+        }
+
+        if (!newPassword) {
+            return showError('passwordError', 'New password is required');
+        }
+
+        if (newPassword.length < 8) {
+            return showError('passwordError', 'Password must be at least 8 characters long');
+        }
+
+        if (newPassword !== confirmPassword) {
+            return showError('passwordError', 'New passwords do not match');
+        }
+
+        try {
+            await apiRequest('/users/me/password', 'POST', {
+                current_password: currentPassword,
+                new_password: newPassword
+            });
+
+            // Clear form and show success
+            document.getElementById('passwordForm').reset();
+            showSuccess('Password changed successfully');
+        } catch (error) {
+            showError('passwordError', error.message);
+        }
+    }
+
+    // Generate API key
+    async function generateApiKey() {
+        try {
+            const response = await apiRequest('/users/me/api-key', 'POST');
+            document.getElementById('apiKeyContainer').style.display = 'block';
+            document.getElementById('apiKeyValue').innerText = response.api_key;
+            showSuccess('New API key generated');
+        } catch (error) {
+            showError('profileError', error.message);
+        }
+    }
+
+    // Revoke API key
+    async function revokeApiKey() {
+        if (!confirm('Are you sure you want to revoke this API key? Any applications using it will no longer work.')) {
+            return;
+        }
+
+        try {
+            await apiRequest('/users/me/api-key', 'DELETE');
+            document.getElementById('apiKeyContainer').style.display = 'none';
+            showSuccess('API key revoked');
+        } catch (error) {
+            showError('profileError', error.message);
+        }
+    }
+
+    // Toggle API key visibility
+    function toggleApiKeyVisibility() {
+        const keyElement = document.getElementById('apiKeyValue');
+        const btnElement = document.getElementById('showApiKeyBtn');
+
+        if (keyElement.innerText.includes('•')) {
+            // API key is hidden, show it
+            apiRequest('/users/me/api-key', 'GET')
+                .then(response => {
+                    keyElement.innerText = response.api_key;
+                    btnElement.innerHTML = '<i class="bi bi-eye-slash"></i> Hide';
+                })
+                .catch(error => {
+                    showError('profileError', error.message);
+                });
+        } else {
+            // Hide the API key
+            keyElement.innerText = '••••••••••••••••••••••••••••••••';
+            btnElement.innerHTML = '<i class="bi bi-eye"></i> Show';
+        }
+    }
+
+    // Copy API key to clipboard
+    function copyApiKey() {
+        const keyElement = document.getElementById('apiKeyValue');
+
+        if (keyElement.innerText.includes('•')) {
+            apiRequest('/users/me/api-key', 'GET')
+                .then(response => {
+                    navigator.clipboard.writeText(response.api_key);
+                    showSuccess('API key copied to clipboard');
+                })
+                .catch(error => {
+                    showError('profileError', error.message);
+                });
+        } else {
+            navigator.clipboard.writeText(keyElement.innerText);
+            showSuccess('API key copied to clipboard');
+        }
+    }
+
+    // Delete account
+    async function deleteAccount() {
+        const password = document.getElementById('deleteConfirmPassword').value;
+
+        if (!password) {
+            showError('deleteAccountModal', 'Password is required to delete your account');
+            return;
+        }
+
+        try {
+            await apiRequest('/users/me', 'DELETE', { password });
+
+            // Clear auth data and redirect to login
+            localStorage.removeItem('auth_token');
+            localStorage.removeItem('user_data');
+
+            window.location.href = '/api/v1/login?deleted=true';
+        } catch (error) {
+            showError('deleteAccountModal', error.message);
+        }
+    }
+
+    // Show error message
+    function showError(elementId, message) {
+        const element = document.getElementById(elementId);
+        element.textContent = message;
+        element.style.display = 'block';
+    }
+
+    // Show success message
+    function showSuccess(message) {
+        const alertDiv = document.createElement('div');
+        alertDiv.className = 'alert alert-success alert-dismissible fade show';
+        alertDiv.setAttribute('role', 'alert');
+        alertDiv.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        `;
+
+        document.body.appendChild(alertDiv);
+
+        // Auto-dismiss after 3 seconds
+        setTimeout(() => {
+            alertDiv.remove();
+        }, 3000);
+    }
+</script>
+{% endblock %}

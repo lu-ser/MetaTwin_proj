@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="it">
+<html lang="en">
 
 <head>
     <meta charset="UTF-8">
@@ -7,9 +7,9 @@
     <title>{{ title }}</title>
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Plotly.js per i grafici -->
+    <!-- Plotly.js for charts -->
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
-    <!-- CSS personalizzato -->
+    <!-- Custom CSS -->
     <link href="{{ url_for('static', path='/css/styles.css') }}" rel="stylesheet">
     {% block head %}{% endblock %}
 </head>
@@ -23,18 +23,26 @@
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav">
+                <ul class="navbar-nav me-auto">
                     <li class="nav-item">
                         <a class="nav-link" href="/api/v1/dashboard">Dashboard</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="/api/v1/users">Utenti</a>
+                        <a class="nav-link" href="/api/v1/devices">Devices</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="/api/v1/devices">Dispositivi</a>
+                        <a class="nav-link" href="/api/v1/users">Users</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="/api/v1/ontology">Ontologia</a>
+                        <a class="nav-link" href="/api/v1/ontology">Ontology</a>
+                    </li>
+                </ul>
+
+                <!-- Login/Logout Button -->
+                <ul class="navbar-nav" id="authButtons">
+                    <li class="nav-item">
+                        <a class="nav-link btn btn-outline-primary btn-sm" href="/api/v1/login"
+                            id="loginButton">Login</a>
                     </li>
                 </ul>
             </div>
@@ -47,14 +55,57 @@
 
     <footer class="footer mt-5 py-3 bg-light">
         <div class="container text-center">
-            <span class="text-muted">© 2025 {{ title }}. Tutti i diritti riservati.</span>
+            <span class="text-muted">© 2025 {{ title }}. All rights reserved.</span>
         </div>
     </footer>
 
     <!-- Bootstrap JS Bundle -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
-    <!-- JavaScript comune -->
+    <!-- Common JavaScript -->
     <script src="{{ url_for('static', path='/js/common.js') }}"></script>
+    <script>
+        // Login/logout button management in navbar
+        document.addEventListener('DOMContentLoaded', function () {
+            updateAuthButton();
+        });
+
+        function updateAuthButton() {
+            const authButtons = document.getElementById('authButtons');
+            const token = localStorage.getItem('auth_token');
+            const userData = JSON.parse(localStorage.getItem('user_data') || '{}');
+
+            if (token && userData) {
+                // Authenticated user: show dropdown with username and logout button
+                authButtons.innerHTML = `
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            ${userData.name || 'User'}
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
+                            <li><a class="dropdown-item" href="/api/v1/profile">Profile</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="#" id="logoutButton">Logout</a></li>
+                        </ul>
+                    </li>
+                `;
+
+                // Add listener for logout button
+                document.getElementById('logoutButton').addEventListener('click', function (e) {
+                    e.preventDefault();
+                    localStorage.removeItem('auth_token');
+                    localStorage.removeItem('user_data');
+                    window.location.reload();
+                });
+            } else {
+                // Non-authenticated user: show login button
+                authButtons.innerHTML = `
+                    <li class="nav-item">
+                        <a class="nav-link btn btn-outline-primary btn-sm" href="/api/v1/login" id="loginButton">Login</a>
+                    </li>
+                `;
+            }
+        }
+    </script>
     {% block scripts %}{% endblock %}
 </body>
 

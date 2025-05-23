@@ -7,25 +7,51 @@ from app.db.crud import get_document, update_document, delete_document, list_doc
 from app.services.digital_twin_service import add_sensor_data_to_digital_twin, generate_random_sensor_data
 from app.ontology.manager import OntologyManager
 from app.api.auth import get_device_by_api_key, verify_device_ownership
+from app.api.auth_service import get_current_active_user
 
 router = APIRouter()
 
 @router.get("/", response_model=List[DigitalTwin])
-async def list_digital_twins(owner_id: Optional[str] = None):
+async def list_digital_twins(
+    owner_id: Optional[str] = None,
+    current_user: Dict[str, Any] = Depends(get_current_active_user)
+):
     """Ottieni tutti i digital twins, opzionalmente filtrando per proprietario"""
     query = {}
-    if owner_id:
+    
+    # Se viene specificato un owner_id, verifica che l'utente possa vedere questi digital twins
+    if owner_id and owner_id != current_user["id"]:
+        # Qui potresti implementare controlli di ruolo più avanzati (es. admin)
+        # Per ora, permettiamo solo ad un utente di vedere i propri digital twins
+        query["owner_id"] = current_user["id"]
+    elif not owner_id:
+        # Se non è specificato owner_id, mostra solo i digital twins dell'utente corrente
+        query["owner_id"] = current_user["id"]
+    else:
+        # Altrimenti, applica il filtro specificato
         query["owner_id"] = owner_id
         
     digital_twins = await list_documents("digital_twins", query)
     return digital_twins
 
 @router.get("/{digital_twin_id}", response_model=DigitalTwin)
-async def get_digital_twin(digital_twin_id: str):
+async def get_digital_twin(
+    digital_twin_id: str,
+    current_user: Dict[str, Any] = Depends(get_current_active_user)
+):
     """Ottieni un digital twin specifico tramite ID"""
     digital_twin = await get_document("digital_twins", digital_twin_id)
     if not digital_twin:
         raise HTTPException(status_code=404, detail="Digital Twin non trovato")
+    
+    # Verifica che l'utente corrente possa accedere a questo digital twin
+    if digital_twin.get("owner_id") != current_user["id"]:
+        # Qui potresti implementare controlli di ruolo più avanzati (es. admin)
+        raise HTTPException(
+            status_code=403, 
+            detail="Non hai i permessi per accedere a questo Digital Twin"
+        )
+    
     return digital_twin
 
 @router.post("/{digital_twin_id}/data", status_code=201)
@@ -70,11 +96,22 @@ async def add_sensor_measurement(
     return {"message": "Dati del sensore aggiunti con successo"}
 
 @router.post("/{digital_twin_id}/generate-data", status_code=201)
-async def generate_data(digital_twin_id: str):
+async def generate_data(
+    digital_twin_id: str,
+    current_user: Dict[str, Any] = Depends(get_current_active_user)
+):
     """Genera dati casuali per tutti i sensori compatibili di un digital twin"""
     dt = await get_document("digital_twins", digital_twin_id)
     if not dt:
         raise HTTPException(status_code=404, detail="Digital Twin non trovato")
+    
+    # Verifica che l'utente corrente possa accedere a questo digital twin
+    if dt.get("owner_id") != current_user["id"]:
+        # Qui potresti implementare controlli di ruolo più avanzati (es. admin)
+        raise HTTPException(
+            status_code=403, 
+            detail="Non hai i permessi per accedere a questo Digital Twin"
+        )
         
     result = await generate_random_sensor_data(digital_twin_id)
     
@@ -86,12 +123,21 @@ async def generate_data(digital_twin_id: str):
 @router.get("/{digital_twin_id}/data", response_model=Dict[str, List[Dict[str, Any]]])
 async def get_sensor_data(
     digital_twin_id: str, 
-    sensor_type: Optional[str] = None
+    sensor_type: Optional[str] = None,
+    current_user: Dict[str, Any] = Depends(get_current_active_user)
 ):
     """Ottieni i dati dei sensori da un digital twin"""
     dt = await get_document("digital_twins", digital_twin_id)
     if not dt:
         raise HTTPException(status_code=404, detail="Digital Twin non trovato")
+    
+    # Verifica che l'utente corrente possa accedere a questo digital twin
+    if dt.get("owner_id") != current_user["id"]:
+        # Qui potresti implementare controlli di ruolo più avanzati (es. admin)
+        raise HTTPException(
+            status_code=403, 
+            detail="Non hai i permessi per accedere a questo Digital Twin"
+        )
         
     if not dt.get("digital_replica") or not dt["digital_replica"].get("sensor_data"):
         return {}
@@ -107,11 +153,23 @@ async def get_sensor_data(
     return sensor_data
 
 @router.get("/{digital_twin_id}/compatibility", response_model=Dict[str, Any])
-async def check_sensor_compatibility(digital_twin_id: str, sensor_type: str):
+async def check_sensor_compatibility(
+    digital_twin_id: str, 
+    sensor_type: str,
+    current_user: Dict[str, Any] = Depends(get_current_active_user)
+):
     """Verifica se un tipo di sensore è compatibile con un digital twin"""
     dt = await get_document("digital_twins", digital_twin_id)
     if not dt:
         raise HTTPException(status_code=404, detail="Digital Twin non trovato")
+    
+    # Verifica che l'utente corrente possa accedere a questo digital twin
+    if dt.get("owner_id") != current_user["id"]:
+        # Qui potresti implementare controlli di ruolo più avanzati (es. admin)
+        raise HTTPException(
+            status_code=403, 
+            detail="Non hai i permessi per accedere a questo Digital Twin"
+        )
         
     ontology = OntologyManager()
     

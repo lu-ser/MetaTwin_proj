@@ -5,17 +5,34 @@ from app.models.device import Device
 from app.db.crud import create_document, get_document, update_document, delete_document, list_documents
 from app.services.digital_twin_service import create_digital_twin_for_device
 from app.api.auth import get_device_by_api_key, verify_device_ownership
+from app.api.auth_service import get_current_active_user
 import secrets
 
 router = APIRouter()
 
 @router.post("/", response_model=Device, status_code=201)
-async def create_device(device: Device, regenerate_api_key: bool = Query(False)):
+async def create_device(
+    device: Device, 
+    regenerate_api_key: bool = Query(False),
+    current_user: Dict[str, Any] = Depends(get_current_active_user)
+):
     """
     Crea un nuovo dispositivo e il suo digital twin
     
     Se specificato owner_id, aggiorna anche l'utente collegando il dispositivo
     """
+    # Se l'owner_id non è specificato, imposta l'utente corrente come proprietario
+    if not device.owner_id:
+        device.owner_id = current_user["id"]
+    
+    # Verifica che l'utente corrente possa creare un dispositivo per il proprietario specificato
+    if device.owner_id != current_user["id"]:
+        # Qui potresti implementare controlli di ruolo più avanzati (es. admin)
+        raise HTTPException(
+            status_code=403, 
+            detail="Non hai i permessi per creare dispositivi per altri utenti"
+        )
+    
     # Se è richiesto di rigenerare API key o non è presente
     if regenerate_api_key or not device.api_key:
         device.api_key = secrets.token_urlsafe(32)
@@ -54,28 +71,54 @@ async def create_device(device: Device, regenerate_api_key: bool = Query(False))
     return updated_device
 
 @router.get("/", response_model=List[Device])
-async def list_devices(owner_id: Optional[str] = None):
+async def list_devices(
+    owner_id: Optional[str] = None,
+    current_user: Dict[str, Any] = Depends(get_current_active_user)
+):
     """Ottieni tutti i dispositivi, opzionalmente filtrando per proprietario"""
     query = {}
-    if owner_id:
+    
+    # Se viene specificato un owner_id, verifica che l'utente possa vedere questi dispositivi
+    if owner_id and owner_id != current_user["id"]:
+        # Qui potresti implementare controlli di ruolo più avanzati (es. admin)
+        # Per ora, permettiamo solo ad un utente di vedere i propri dispositivi
+        query["owner_id"] = current_user["id"]
+    elif not owner_id:
+        # Se non è specificato owner_id, mostra solo i dispositivi dell'utente corrente
+        query["owner_id"] = current_user["id"]
+    else:
+        # Altrimenti, applica il filtro specificato
         query["owner_id"] = owner_id
         
     devices = await list_documents("devices", query)
     return devices
 
 @router.get("/{device_id}", response_model=Device)
-async def get_device(device_id: str):
+async def get_device(
+    device_id: str,
+    current_user: Dict[str, Any] = Depends(get_current_active_user)
+):
     """Ottieni un dispositivo specifico tramite ID"""
     device = await get_document("devices", device_id)
     if not device:
         raise HTTPException(status_code=404, detail="Dispositivo non trovato")
+    
+    # Verifica che l'utente corrente possa accedere a questo dispositivo
+    if device.get("owner_id") != current_user["id"]:
+        # Qui potresti implementare controlli di ruolo più avanzati (es. admin)
+        raise HTTPException(
+            status_code=403, 
+            detail="Non hai i permessi per accedere a questo dispositivo"
+        )
+    
     return device
 
 @router.put("/{device_id}", response_model=Device)
 async def update_device(
     device_id: str, 
     device_update: Device = Body(...),
-    regenerate_api_key: bool = Query(False)
+    regenerate_api_key: bool = Query(False),
+    current_user: Dict[str, Any] = Depends(get_current_active_user)
 ):
     """
     Aggiorna un dispositivo esistente
@@ -86,12 +129,28 @@ async def update_device(
     if not existing_device:
         raise HTTPException(status_code=404, detail="Dispositivo non trovato")
     
+    # Verifica che l'utente corrente possa modificare questo dispositivo
+    if existing_device.get("owner_id") != current_user["id"]:
+        # Qui potresti implementare controlli di ruolo più avanzati (es. admin)
+        raise HTTPException(
+            status_code=403, 
+            detail="Non hai i permessi per modificare questo dispositivo"
+        )
+    
     # Prepara i dati dell'aggiornamento
     update_data = device_update.dict(exclude_unset=True)
     
     # Gestione del cambio di proprietario
     old_owner_id = existing_device.get("owner_id")
     new_owner_id = device_update.owner_id
+    
+    # Verifica che l'utente corrente possa cambiare il proprietario
+    if new_owner_id != old_owner_id and new_owner_id != current_user["id"]:
+        # Qui potresti implementare controlli di ruolo più avanzati (es. admin)
+        raise HTTPException(
+            status_code=403, 
+            detail="Non hai i permessi per trasferire questo dispositivo ad un altro utente"
+        )
     
     # Se è richiesto di rigenerare API key
     if regenerate_api_key:
@@ -142,7 +201,10 @@ async def update_device(
     return updated_device
 
 @router.delete("/{device_id}", status_code=204)
-async def delete_device(device_id: str):
+async def delete_device(
+    device_id: str,
+    current_user: Dict[str, Any] = Depends(get_current_active_user)
+):
     """
     Elimina un dispositivo e il suo digital twin
     
@@ -151,6 +213,14 @@ async def delete_device(device_id: str):
     device = await get_document("devices", device_id)
     if not device:
         raise HTTPException(status_code=404, detail="Dispositivo non trovato")
+    
+    # Verifica che l'utente corrente possa eliminare questo dispositivo
+    if device.get("owner_id") != current_user["id"]:
+        # Qui potresti implementare controlli di ruolo più avanzati (es. admin)
+        raise HTTPException(
+            status_code=403, 
+            detail="Non hai i permessi per eliminare questo dispositivo"
+        )
     
     # Rimuovi il dispositivo dall'utente se è collegato
     owner_id = device.get("owner_id")
@@ -189,7 +259,10 @@ async def verify_device(device: Device = Depends(get_device_by_api_key)):
     return device
 
 @router.post("/regenerate-api-key", response_model=Dict[str, str])
-async def regenerate_api_key(device_id: str):
+async def regenerate_api_key(
+    device_id: str,
+    current_user: Dict[str, Any] = Depends(get_current_active_user)
+):
     """
     Rigenera l'API key per un dispositivo
     
@@ -198,6 +271,14 @@ async def regenerate_api_key(device_id: str):
     device = await get_document("devices", device_id)
     if not device:
         raise HTTPException(status_code=404, detail="Dispositivo non trovato")
+    
+    # Verifica che l'utente corrente possa modificare questo dispositivo
+    if device.get("owner_id") != current_user["id"]:
+        # Qui potresti implementare controlli di ruolo più avanzati (es. admin)
+        raise HTTPException(
+            status_code=403, 
+            detail="Non hai i permessi per rigenerare l'API key di questo dispositivo"
+        )
     
     # Genera una nuova API key
     new_api_key = secrets.token_urlsafe(32)
