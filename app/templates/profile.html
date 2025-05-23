@@ -234,7 +234,7 @@
         const newPassword = document.getElementById('newPassword').value;
         const confirmPassword = document.getElementById('confirmPassword').value;
 
-        // Validate
+        // Validation
         if (!currentPassword) {
             return showError('passwordError', 'Current password is required');
         }
@@ -252,132 +252,116 @@
         }
 
         try {
-            await apiRequest('/users/me/password', 'POST', {
+            await apiRequest('/users/me/password', 'PATCH', {
                 current_password: currentPassword,
                 new_password: newPassword
             });
-
-            // Clear form and show success
-            document.getElementById('passwordForm').reset();
             showSuccess('Password changed successfully');
+            document.getElementById('passwordForm').reset(); // Reset the form
         } catch (error) {
             showError('passwordError', error.message);
         }
     }
 
-    // Generate API key
+    // API Key Management
     async function generateApiKey() {
         try {
             const response = await apiRequest('/users/me/api-key', 'POST');
+            document.getElementById('apiKeyValue').textContent = response.api_key;
             document.getElementById('apiKeyContainer').style.display = 'block';
-            document.getElementById('apiKeyValue').innerText = response.api_key;
-            showSuccess('New API key generated');
+            showSuccess('API Key generated successfully');
         } catch (error) {
-            showError('profileError', error.message);
+            showError('profileError', 'Error generating API Key: ' + error.message);
         }
     }
 
-    // Revoke API key
     async function revokeApiKey() {
-        if (!confirm('Are you sure you want to revoke this API key? Any applications using it will no longer work.')) {
+        if (!confirm("Are you sure you want to revoke your API key? This action cannot be undone.")) {
             return;
         }
-
         try {
             await apiRequest('/users/me/api-key', 'DELETE');
             document.getElementById('apiKeyContainer').style.display = 'none';
-            showSuccess('API key revoked');
+            document.getElementById('apiKeyValue').textContent = '••••••••••••••••••••••••••••••••';
+            showSuccess('API Key revoked successfully');
         } catch (error) {
-            showError('profileError', error.message);
+            showError('profileError', 'Error revoking API Key: ' + error.message);
         }
     }
 
-    // Toggle API key visibility
-    function toggleApiKeyVisibility() {
-        const keyElement = document.getElementById('apiKeyValue');
-        const btnElement = document.getElementById('showApiKeyBtn');
+    let apiKeyVisible = false;
+    async function toggleApiKeyVisibility() {
+        const apiKeySpan = document.getElementById('apiKeyValue');
+        const showApiKeyBtn = document.getElementById('showApiKeyBtn');
 
-        if (keyElement.innerText.includes('•')) {
-            // API key is hidden, show it
-            apiRequest('/users/me/api-key', 'GET')
-                .then(response => {
-                    keyElement.innerText = response.api_key;
-                    btnElement.innerHTML = '<i class="bi bi-eye-slash"></i> Hide';
-                })
-                .catch(error => {
-                    showError('profileError', error.message);
-                });
+        if (apiKeyVisible) {
+            apiKeySpan.textContent = '••••••••••••••••••••••••••••••••';
+            showApiKeyBtn.innerHTML = '<i class="bi bi-eye"></i> Show';
+            apiKeyVisible = false;
         } else {
-            // Hide the API key
-            keyElement.innerText = '••••••••••••••••••••••••••••••••';
-            btnElement.innerHTML = '<i class="bi bi-eye"></i> Show';
+            try {
+                const response = await apiRequest('/users/me/api-key', 'GET');
+                apiKeySpan.textContent = response.api_key;
+                showApiKeyBtn.innerHTML = '<i class="bi bi-eye-slash"></i> Hide';
+                apiKeyVisible = true;
+            } catch (error) {
+                showError('profileError', 'Error showing API Key: ' + error.message);
+            }
         }
     }
 
-    // Copy API key to clipboard
-    function copyApiKey() {
-        const keyElement = document.getElementById('apiKeyValue');
-
-        if (keyElement.innerText.includes('•')) {
-            apiRequest('/users/me/api-key', 'GET')
-                .then(response => {
-                    navigator.clipboard.writeText(response.api_key);
-                    showSuccess('API key copied to clipboard');
-                })
-                .catch(error => {
-                    showError('profileError', error.message);
-                });
-        } else {
-            navigator.clipboard.writeText(keyElement.innerText);
-            showSuccess('API key copied to clipboard');
+    async function copyApiKey() {
+        try {
+            const response = await apiRequest('/users/me/api-key', 'GET');
+            navigator.clipboard.writeText(response.api_key)
+                .then(() => showSuccess('API Key copied to clipboard'))
+                .catch(err => showError('profileError', 'Error copying API Key: ' + err));
+        } catch (error) {
+            showError('profileError', 'Error retrieving API Key: ' + error.message);
         }
     }
 
-    // Delete account
+    // Account deletion
     async function deleteAccount() {
         const password = document.getElementById('deleteConfirmPassword').value;
 
         if (!password) {
-            showError('deleteAccountModal', 'Password is required to delete your account');
-            return;
+            return alert('Please enter your password to confirm.');
         }
 
         try {
-            await apiRequest('/users/me', 'DELETE', { password });
-
-            // Clear auth data and redirect to login
+            await apiRequest('/users/me', 'DELETE', { password: password });
+            // Logout and redirect to homepage or login page
             localStorage.removeItem('auth_token');
             localStorage.removeItem('user_data');
-
-            window.location.href = '/api/v1/login?deleted=true';
+            window.location.href = '/'; // Or '/login'
+            alert('Account deleted successfully.');
         } catch (error) {
-            showError('deleteAccountModal', error.message);
+            alert('Error deleting account: ' + error.message);
         }
     }
 
-    // Show error message
+    // Helper functions to show messages
     function showError(elementId, message) {
-        const element = document.getElementById(elementId);
-        element.textContent = message;
-        element.style.display = 'block';
+        const errorDiv = document.getElementById(elementId);
+        errorDiv.textContent = message;
+        errorDiv.style.display = 'block';
+        // Hide after 5 seconds
+        setTimeout(() => errorDiv.style.display = 'none', 5000);
     }
 
-    // Show success message
     function showSuccess(message) {
+        // Dynamic Bootstrap alert creation
         const alertDiv = document.createElement('div');
         alertDiv.className = 'alert alert-success alert-dismissible fade show';
-        alertDiv.setAttribute('role', 'alert');
+        alertDiv.role = 'alert';
         alertDiv.innerHTML = `
             ${message}
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         `;
-
         document.body.appendChild(alertDiv);
-
-        // Auto-dismiss after 3 seconds
-        setTimeout(() => {
-            alertDiv.remove();
-        }, 3000);
+        // Remove after 3 seconds
+        setTimeout(() => alertDiv.remove(), 3000);
     }
 </script>
 {% endblock %}

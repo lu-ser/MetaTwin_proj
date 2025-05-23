@@ -372,7 +372,7 @@ document.addEventListener('DOMContentLoaded', function () {
                             
                             <div class="text-end">
                                 <a href="/api/v1/dashboard?dt=${digitalTwin.id}" class="btn btn-primary">
-                                    Vai alla Dashboard
+                                    Dashboard
                                 </a>
                             </div>
                         </div>

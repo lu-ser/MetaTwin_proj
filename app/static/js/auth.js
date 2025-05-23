@@ -78,6 +78,7 @@ function addDebugButton() {
             formData.append('username', username);
             formData.append('password', password);
 
+            // FIXED: Use correct URL with /api/v1 prefix
             const response = await fetch('/api/v1/auth/token', {
                 method: 'POST',
                 headers: {
@@ -98,7 +99,7 @@ function addDebugButton() {
                 goToDashboardBtn.className = 'btn btn-success mt-2';
                 goToDashboardBtn.textContent = 'Go to Dashboard';
                 goToDashboardBtn.addEventListener('click', function () {
-                    window.location.href = '/api/dashboard';
+                    window.location.href = '/api/v1/dashboard';
                 });
 
                 result.parentNode.appendChild(goToDashboardBtn);
@@ -114,6 +115,7 @@ function addDebugButton() {
         result.style.display = 'block';
 
         try {
+            // FIXED: Use correct URL with /api/v1 prefix
             const response = await fetch('/api/v1/auth/me', {
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('auth_token') || ''}`
@@ -144,7 +146,8 @@ async function handleLogin() {
 
         console.log('Sending login with formData:', formData.toString());
 
-        const response = await fetch(`/api/auth/token`, {
+        // FIXED: Use correct URL with /api/v1 prefix
+        const response = await fetch('/api/v1/auth/token', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded'
@@ -198,7 +201,8 @@ async function handleRegistration() {
     }
 
     try {
-        const response = await fetch(`/api/auth/register`, {
+        // FIXED: Use correct URL with /api/v1 prefix
+        const response = await fetch('/api/v1/auth/register', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -244,7 +248,8 @@ async function fetchUserData() {
             return null;
         }
 
-        const response = await fetch(`/api/auth/me`, {
+        // FIXED: Use correct URL with /api/v1 prefix
+        const response = await fetch('/api/v1/auth/me', {
             headers: {
                 'Authorization': `Bearer ${token}`
             }
@@ -326,4 +331,4 @@ function showSuccessMessage(message) {
     setTimeout(() => {
         alertDiv.remove();
     }, 5000);
-} 
+}

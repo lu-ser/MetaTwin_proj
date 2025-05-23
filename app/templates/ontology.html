@@ -1,44 +1,44 @@
 {% extends "base.html" %}
 
 {% block head %}
-<title>Ontologia - {{ title }}</title>
+<title>Ontology - {{ title }}</title>
 {% endblock %}
 
 {% block content %}
-<h1 class="mb-4">Visualizzazione Ontologia</h1>
+<h1 class="mb-4">Ontology Visualization</h1>
 
 <div class="row">
     <div class="col-md-6">
         <div class="card mb-4">
             <div class="card-header">
-                <h3>Seleziona Classe</h3>
+                <h3>Select Class</h3>
             </div>
             <div class="card-body">
                 <div class="row">
                     <div class="col-md-6 mb-3">
-                        <label for="root-class-dropdown" class="form-label">Classi Radice</label>
+                        <label for="root-class-dropdown" class="form-label">Root Classes</label>
                         <select id="root-class-dropdown" class="form-select">
-                            <option value="" selected disabled>Seleziona una classe radice...</option>
+                            <option value="" selected disabled>Select a root class...</option>
                         </select>
                     </div>
                     <div class="col-md-6 mb-3">
-                        <label for="all-class-dropdown" class="form-label">Tutte le Classi</label>
+                        <label for="all-class-dropdown" class="form-label">All Classes</label>
                         <select id="all-class-dropdown" class="form-select">
-                            <option value="" selected disabled>Seleziona una classe...</option>
+                            <option value="" selected disabled>Select a class...</option>
                         </select>
                     </div>
                 </div>
-                <button id="refresh-ontology-btn" class="btn btn-primary">Aggiorna Lista</button>
+                <button id="refresh-ontology-btn" class="btn btn-primary">Refresh List</button>
             </div>
         </div>
 
         <div class="card">
             <div class="card-header">
-                <h3>Dettagli Classe</h3>
+                <h3>Class Details</h3>
             </div>
             <div class="card-body">
                 <div id="class-details">
-                    <!-- I dettagli della classe verranno caricati qui -->
+                    <!-- Class details will be loaded here -->
                 </div>
             </div>
         </div>
@@ -47,11 +47,11 @@
     <div class="col-md-6">
         <div class="card">
             <div class="card-header">
-                <h3>Grafo delle Relazioni</h3>
+                <h3>Relationship Graph</h3>
             </div>
             <div class="card-body">
                 <div id="ontology-graph" style="width:100%; height:600px;">
-                    <!-- Il grafo dell'ontologia verrà caricato qui -->
+                    <!-- The ontology graph will be loaded here -->
                 </div>
             </div>
         </div>

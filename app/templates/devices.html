@@ -1,23 +1,23 @@
 {% extends "base.html" %}
 
 {% block head %}
-<title>Gestione Dispositivi - {{ title }}</title>
+<title>Device Management - {{ title }}</title>
 {% endblock %}
 
 {% block content %}
-<h1 class="mb-4">Gestione Dispositivi</h1>
+<h1 class="mb-4">Device Management</h1>
 
 <div class="row">
     <div class="col-md-6">
         <div class="card">
             <div class="card-header">
-                <h3>Dispositivi Esistenti</h3>
+                <h3>Existing Devices</h3>
             </div>
             <div class="card-body">
                 <div id="devices-list" class="list-group mb-3">
-                    <!-- I dispositivi verranno caricati dinamicamente qui -->
+                    <!-- Devices will be dynamically loaded here -->
                 </div>
-                <button id="refresh-devices-btn" class="btn btn-primary">Aggiorna Lista</button>
+                <button id="refresh-devices-btn" class="btn btn-primary">Refresh List</button>
             </div>
         </div>
     </div>
@@ -25,70 +25,70 @@
     <div class="col-md-6">
         <div class="card">
             <div class="card-header">
-                <h3>Crea Nuovo Dispositivo</h3>
+                <h3>Create New Device</h3>
             </div>
             <div class="card-body">
                 <form id="create-device-form">
                     <div class="mb-3">
-                        <label for="device-name-input" class="form-label">Nome Dispositivo</label>
+                        <label for="device-name-input" class="form-label">Device Name</label>
                         <input type="text" class="form-control" id="device-name-input" required>
                     </div>
 
                     <div class="mb-3">
-                        <label for="device-type-dropdown" class="form-label">Tipo di Dispositivo</label>
+                        <label for="device-type-dropdown" class="form-label">Device Type</label>
                         <select id="device-type-dropdown" class="form-select" required>
-                            <option value="" selected disabled>Seleziona un tipo di dispositivo...</option>
+                            <option value="" selected disabled>Select a device type...</option>
                         </select>
                     </div>
 
                     <div class="mb-3">
-                        <label for="owner-id-input" class="form-label">ID Proprietario (opzionale)</label>
+                        <label for="owner-id-input" class="form-label">Owner ID (optional)</label>
                         <input type="text" class="form-control" id="owner-id-input"
-                            placeholder="Inserisci l'ID dell'utente proprietario">
-                        <div class="form-text">Lascia vuoto se il dispositivo non ha un proprietario.</div>
+                            placeholder="Enter the owner user ID">
+                        <div class="form-text">Leave empty if the device has no owner.</div>
                     </div>
 
-                    <h5 class="mt-4">Attributi (opzionali):</h5>
+                    <h5 class="mt-4">Attributes (optional):</h5>
                     <div class="row mb-3">
                         <div class="col-md-4">
                             <select id="attr-name-dropdown" class="form-select">
-                                <option value="" selected disabled>Seleziona attributo...</option>
+                                <option value="" selected disabled>Select attribute...</option>
                             </select>
                         </div>
                         <div class="col-md-4">
-                            <input type="number" class="form-control" id="attr-value-input" placeholder="Valore">
+                            <input type="number" class="form-control" id="attr-value-input" placeholder="Value">
                         </div>
                         <div class="col-md-4">
                             <div id="attr-unit-display" class="form-text"></div>
                         </div>
                     </div>
 
-                    <button type="button" id="add-attr-btn" class="btn btn-secondary mb-3">Aggiungi Attributo</button>
+                    <button type="button" id="add-attr-btn" class="btn btn-secondary mb-3">Add Attribute</button>
 
                     <div id="attributes-list" class="mb-3">
-                        <!-- Gli attributi aggiunti verranno visualizzati qui -->
+                        <!-- Added attributes will be displayed here -->
                     </div>
 
-                    <button type="submit" class="btn btn-success">Crea Dispositivo</button>
+                    <button type="submit" class="btn btn-success">Create Device</button>
                 </form>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Modal per dettagli dispositivo -->
+<!-- Device Details Modal -->
 <div class="modal fade" id="device-details-modal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Dettagli Dispositivo</h5>
+                <h5 class="modal-title">Device Details</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body" id="device-details-content">
-                <!-- I dettagli del dispositivo verranno caricati qui -->
+                <!-- Device details will be loaded here -->
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Chiudi</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
             </div>
         </div>
     </div>

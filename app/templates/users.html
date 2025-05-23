@@ -1,23 +1,23 @@
 {% extends "base.html" %}
 
 {% block head %}
-<title>Gestione Utenti - {{ title }}</title>
+<title>User Management - {{ title }}</title>
 {% endblock %}
 
 {% block content %}
-<h1 class="mb-4">Gestione Utenti</h1>
+<h1 class="mb-4">User Management</h1>
 
 <div class="row">
     <div class="col-md-6">
         <div class="card">
             <div class="card-header">
-                <h3>Utenti Esistenti</h3>
+                <h3>Existing Users</h3>
             </div>
             <div class="card-body">
                 <div id="users-list" class="list-group mb-3">
-                    <!-- Gli utenti verranno caricati dinamicamente qui -->
+                    <!-- Users will be dynamically loaded here -->
                 </div>
-                <button id="refresh-users-btn" class="btn btn-primary">Aggiorna Lista</button>
+                <button id="refresh-users-btn" class="btn btn-primary">Refresh List</button>
             </div>
         </div>
     </div>
@@ -25,41 +25,41 @@
     <div class="col-md-6">
         <div class="card">
             <div class="card-header">
-                <h3>Crea Nuovo Utente</h3>
+                <h3>Create New User</h3>
             </div>
             <div class="card-body">
                 <form id="create-user-form">
                     <div class="mb-3">
-                        <label for="user-name-input" class="form-label">Nome Utente</label>
+                        <label for="user-name-input" class="form-label">Username</label>
                         <input type="text" class="form-control" id="user-name-input" required>
                     </div>
 
                     <div class="mb-3">
                         <label for="user-email-input" class="form-label">Email</label>
                         <input type="email" class="form-control" id="user-email-input">
-                        <div class="form-text">Opzionale</div>
+                        <div class="form-text">Optional</div>
                     </div>
 
-                    <button type="submit" class="btn btn-success">Crea Utente</button>
+                    <button type="submit" class="btn btn-success">Create User</button>
                 </form>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Modal per dettagli utente -->
+<!-- User Details Modal -->
 <div class="modal fade" id="user-details-modal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Dettagli Utente</h5>
+                <h5 class="modal-title">User Details</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body" id="user-details-content">
-                <!-- I dettagli dell'utente verranno caricati qui -->
+                <!-- User details will be loaded here -->
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Chiudi</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
             </div>
         </div>
     </div>

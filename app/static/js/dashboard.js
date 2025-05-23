@@ -84,7 +84,7 @@ function showLoginInterface() {
     `;
 
     // Aggiungi il container alla pagina
-    document.querySelector('main .container').appendChild(loginContainer);
+    document.querySelector('.container').appendChild(loginContainer);
 
     // Event listener per il form di login
     document.getElementById('dashboardLoginForm').addEventListener('submit', function (e) {
@@ -127,7 +127,7 @@ async function handleDashboardLogin() {
         formData.append('username', email);  // OAuth2 usa 'username' anche se è un'email
         formData.append('password', password);
 
-        const response = await fetch(`/api/v1/auth/token`, {
+        const response = await fetch(`/api/v1/auth/token`, {  // CORRETTO: già aveva /v1
             method: 'POST',
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded'
@@ -175,7 +175,7 @@ async function fetchUserData() {
             return null;
         }
 
-        const response = await fetch(`/api/v1/auth/me`, {
+        const response = await fetch(`/api/v1/auth/me`, {  // CORRETTO: già aveva /v1
             headers: {
                 'Authorization': `Bearer ${token}`
             }
@@ -214,7 +214,7 @@ function loadUserInfo() {
 // Carica la lista dei digital twins
 async function loadDigitalTwins() {
     try {
-        const response = await apiRequest('/digital_twins', 'GET');
+        const response = await apiRequest('/digital-twins', 'GET');  // Usa apiRequest che ha già il prefisso corretto
         displayDigitalTwins(response);
     } catch (error) {
         console.error('Error loading digital twins:', error);
@@ -240,9 +240,10 @@ function displayDigitalTwins(digitalTwins) {
         <a href="#" class="list-group-item list-group-item-action" onclick="loadDigitalTwinDetails('${dt.id}')">
             <div class="d-flex w-100 justify-content-between">
                 <h6 class="mb-1">${dt.name}</h6>
-                <small class="text-muted">${new Date(dt.created_at).toLocaleDateString()}</small>
+                <small class="text-muted">${dt.digital_replica?.last_updated ? new Date(dt.digital_replica.last_updated).toLocaleDateString() : 'N/A'}</small>
             </div>
-            <p class="mb-1 text-truncate">${dt.description || 'No description'}</p>
+            <p class="mb-1 text-truncate">${dt.device_type || 'No type specified'}</p>
+            <small class="text-muted">Sensori: ${dt.compatible_sensors?.length || 0}</small>
         </a>
     `).join('');
 
@@ -252,8 +253,14 @@ function displayDigitalTwins(digitalTwins) {
 // Carica i dettagli di un digital twin
 async function loadDigitalTwinDetails(dtId) {
     try {
-        const response = await apiRequest(`/digital_twins/${dtId}`, 'GET');
+        const response = await apiRequest(`/digital-twins/${dtId}`, 'GET');
         displayDigitalTwinDetails(response);
+
+        // Segna come attivo nella lista
+        document.querySelectorAll('#digitalTwinsList .list-group-item').forEach(item => {
+            item.classList.remove('active');
+        });
+        document.querySelector(`#digitalTwinsList .list-group-item[onclick="loadDigitalTwinDetails('${dtId}')"]`)?.classList.add('active');
     } catch (error) {
         console.error('Error loading digital twin details:', error);
         showError('Failed to load digital twin details: ' + error.message);
@@ -264,12 +271,33 @@ async function loadDigitalTwinDetails(dtId) {
 function displayDigitalTwinDetails(dt) {
     const container = document.getElementById('digitalTwinDetails');
 
+    const sensorDataHtml = dt.digital_replica?.sensor_data ?
+        Object.keys(dt.digital_replica.sensor_data).map(sensorType => {
+            const data = dt.digital_replica.sensor_data[sensorType];
+            const lastValue = data && data.length > 0 ? data[data.length - 1] : null;
+            return `
+                <div class="col-md-6 mb-3">
+                    <div class="card">
+                        <div class="card-body">
+                            <h6 class="card-title">${sensorType}</h6>
+                            <p class="card-text">
+                                ${lastValue ?
+                    `<strong>${lastValue.value}</strong> ${lastValue.unit_measure}<br>
+                                     <small class="text-muted">${new Date(lastValue.timestamp).toLocaleString()}</small>`
+                    : 'No data available'}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('') : '<p class="text-muted">No sensor data available</p>';
+
     container.innerHTML = `
         <div class="card-header d-flex justify-content-between align-items-center">
             <h5 class="mb-0">${dt.name}</h5>
             <div class="btn-group">
-                <button class="btn btn-outline-primary btn-sm" onclick="editDigitalTwin('${dt.id}')">
-                    <i class="bi bi-pencil"></i> Edit
+                <button class="btn btn-outline-success btn-sm" onclick="generateRandomData('${dt.id}')">
+                    <i class="bi bi-arrow-clockwise"></i> Generate Data
                 </button>
                 <button class="btn btn-outline-danger btn-sm" onclick="deleteDigitalTwin('${dt.id}')">
                     <i class="bi bi-trash"></i> Delete
@@ -277,126 +305,88 @@ function displayDigitalTwinDetails(dt) {
             </div>
         </div>
         <div class="card-body">
-            <p class="card-text">${dt.description || 'No description'}</p>
-            
-            <h6 class="mt-4">Details</h6>
-            <ul class="list-unstyled">
-                <li><strong>ID:</strong> ${dt.id}</li>
-                <li><strong>Created:</strong> ${new Date(dt.created_at).toLocaleString()}</li>
-                <li><strong>Last Updated:</strong> ${new Date(dt.updated_at).toLocaleString()}</li>
-            </ul>
-            
-            <h6 class="mt-4">Connected Devices</h6>
-            <div id="connectedDevices">
-                ${dt.devices && dt.devices.length > 0 ? `
-                    <ul class="list-group">
-                        ${dt.devices.map(device => `
-                            <li class="list-group-item d-flex justify-content-between align-items-center">
-                                ${device.name}
-                                <span class="badge bg-primary rounded-pill">${device.status || 'Unknown'}</span>
-                            </li>
-                        `).join('')}
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <h6>Details</h6>
+                    <ul class="list-unstyled">
+                        <li><strong>ID:</strong> ${dt.id}</li>
+                        <li><strong>Device Type:</strong> ${dt.device_type}</li>
+                        <li><strong>Device ID:</strong> ${dt.device_id || 'N/A'}</li>
+                        <li><strong>Last Updated:</strong> ${dt.digital_replica?.last_updated ? new Date(dt.digital_replica.last_updated).toLocaleString() : 'Never'}</li>
                     </ul>
-                ` : `
-                    <p class="text-muted">No devices connected</p>
-                    <button class="btn btn-outline-primary btn-sm" onclick="connectDevice('${dt.id}')">
-                        <i class="bi bi-link"></i> Connect Device
-                    </button>
-                `}
+                </div>
+                <div class="col-md-6">
+                    <h6>Compatible Sensors</h6>
+                    ${dt.compatible_sensors && dt.compatible_sensors.length > 0 ? `
+                        <div class="d-flex flex-wrap gap-1">
+                            ${dt.compatible_sensors.map(sensor => `
+                                <span class="badge bg-secondary">${sensor}</span>
+                            `).join('')}
+                        </div>
+                    ` : '<p class="text-muted">No compatible sensors</p>'}
+                </div>
             </div>
             
-            <h6 class="mt-4">Telemetry</h6>
-            <div id="telemetryChart" style="height: 300px;">
-                <p class="text-muted text-center">Select a device to view telemetry data</p>
+            <h6 class="mt-4">Current Sensor Data</h6>
+            <div class="row">
+                ${sensorDataHtml}
+            </div>
+            
+            <div class="chart-container">
+                <div id="sensorChart" style="width:100%; height:300px;"></div>
             </div>
         </div>
     `;
-}
 
-// Edit digital twin
-async function editDigitalTwin(dtId) {
-    try {
-        const dt = await apiRequest(`/digital_twins/${dtId}`, 'GET');
-
-        // Create and show modal
-        const modalHtml = `
-            <div class="modal fade" id="editDtModal" tabindex="-1">
-                <div class="modal-dialog">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title">Edit Digital Twin</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                        </div>
-                        <div class="modal-body">
-                            <div class="alert alert-danger" id="editDtError" style="display: none;"></div>
-                            <form id="editDtForm">
-                                <div class="mb-3">
-                                    <label class="form-label">Name</label>
-                                    <input type="text" class="form-control" id="editDtName" value="${dt.name}" required>
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label">Description</label>
-                                    <textarea class="form-control" id="editDtDescription" rows="3">${dt.description || ''}</textarea>
-                                </div>
-                            </form>
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                            <button type="button" class="btn btn-primary" onclick="saveDigitalTwin('${dt.id}')">Save Changes</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
-
-        // Add modal to document
-        document.body.insertAdjacentHTML('beforeend', modalHtml);
-
-        // Show modal
-        const modal = new bootstrap.Modal(document.getElementById('editDtModal'));
-        modal.show();
-
-        // Clean up modal after it's hidden
-        document.getElementById('editDtModal').addEventListener('hidden.bs.modal', function () {
-            this.remove();
-        });
-    } catch (error) {
-        console.error('Error loading digital twin for editing:', error);
-        showError('Failed to load digital twin: ' + error.message);
+    // Genera il grafico se ci sono dati
+    if (dt.digital_replica?.sensor_data) {
+        createSensorChart(dt.digital_replica.sensor_data);
     }
 }
 
-// Save digital twin changes
-async function saveDigitalTwin(dtId) {
-    const name = document.getElementById('editDtName').value;
-    const description = document.getElementById('editDtDescription').value;
-    const errorElement = document.getElementById('editDtError');
+// Crea il grafico dei sensori
+function createSensorChart(sensorData) {
+    const traces = [];
 
-    if (!name) {
-        errorElement.textContent = 'Name is required';
-        errorElement.style.display = 'block';
-        return;
+    Object.keys(sensorData).forEach(sensorType => {
+        const data = sensorData[sensorType];
+        if (data && data.length > 0) {
+            traces.push({
+                x: data.map(d => d.timestamp),
+                y: data.map(d => d.value),
+                type: 'scatter',
+                mode: 'lines+markers',
+                name: sensorType,
+                line: { width: 2 }
+            });
+        }
+    });
+
+    if (traces.length > 0) {
+        const layout = {
+            title: 'Sensor Data Over Time',
+            xaxis: { title: 'Time' },
+            yaxis: { title: 'Value' },
+            margin: { t: 50, r: 50, b: 50, l: 50 }
+        };
+
+        Plotly.newPlot('sensorChart', traces, layout);
+    } else {
+        document.getElementById('sensorChart').innerHTML = '<p class="text-center text-muted">No data to display</p>';
     }
+}
 
+// Genera dati casuali per un digital twin
+async function generateRandomData(dtId) {
     try {
-        await apiRequest(`/digital_twins/${dtId}`, 'PUT', {
-            name,
-            description
-        });
+        await apiRequest(`/digital-twins/${dtId}/generate-data`, 'POST');
+        showSuccess('Random data generated successfully');
 
-        // Close modal
-        const modal = bootstrap.Modal.getInstance(document.getElementById('editDtModal'));
-        modal.hide();
-
-        // Reload data
-        loadDigitalTwins();
+        // Ricarica i dettagli del digital twin
         loadDigitalTwinDetails(dtId);
-
-        showSuccess('Digital Twin updated successfully');
     } catch (error) {
-        console.error('Error updating digital twin:', error);
-        errorElement.textContent = error.message;
-        errorElement.style.display = 'block';
+        console.error('Error generating random data:', error);
+        showError('Failed to generate random data: ' + error.message);
     }
 }
 
@@ -407,7 +397,7 @@ async function deleteDigitalTwin(dtId) {
     }
 
     try {
-        await apiRequest(`/digital_twins/${dtId}`, 'DELETE');
+        await apiRequest(`/digital-twins/${dtId}`, 'DELETE');
 
         // Clear details and reload list
         document.getElementById('digitalTwinDetails').innerHTML = `
@@ -421,106 +411,6 @@ async function deleteDigitalTwin(dtId) {
     } catch (error) {
         console.error('Error deleting digital twin:', error);
         showError('Failed to delete digital twin: ' + error.message);
-    }
-}
-
-// Connect device to digital twin
-function connectDevice(dtId) {
-    // Create and show modal
-    const modalHtml = `
-        <div class="modal fade" id="connectDeviceModal" tabindex="-1">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title">Connect Device</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                    </div>
-                    <div class="modal-body">
-                        <div class="alert alert-danger" id="connectDeviceError" style="display: none;"></div>
-                        <form id="connectDeviceForm">
-                            <div class="mb-3">
-                                <label class="form-label">Select Device</label>
-                                <select class="form-select" id="deviceSelect">
-                                    <option value="">Loading devices...</option>
-                                </select>
-                            </div>
-                        </form>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                        <button type="button" class="btn btn-primary" onclick="saveDeviceConnection('${dtId}')">Connect</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
-
-    // Add modal to document
-    document.body.insertAdjacentHTML('beforeend', modalHtml);
-
-    // Show modal
-    const modal = new bootstrap.Modal(document.getElementById('connectDeviceModal'));
-    modal.show();
-
-    // Load available devices
-    loadAvailableDevices();
-
-    // Clean up modal after it's hidden
-    document.getElementById('connectDeviceModal').addEventListener('hidden.bs.modal', function () {
-        this.remove();
-    });
-}
-
-// Load available devices for connection
-async function loadAvailableDevices() {
-    try {
-        const devices = await apiRequest('/devices', 'GET');
-        const select = document.getElementById('deviceSelect');
-
-        if (!devices || devices.length === 0) {
-            select.innerHTML = '<option value="">No devices available</option>';
-            return;
-        }
-
-        select.innerHTML = `
-            <option value="">Select a device...</option>
-            ${devices.map(device => `
-                <option value="${device.id}">${device.name}</option>
-            `).join('')}
-        `;
-    } catch (error) {
-        console.error('Error loading devices:', error);
-        document.getElementById('connectDeviceError').textContent = 'Failed to load devices: ' + error.message;
-        document.getElementById('connectDeviceError').style.display = 'block';
-    }
-}
-
-// Save device connection
-async function saveDeviceConnection(dtId) {
-    const deviceId = document.getElementById('deviceSelect').value;
-    const errorElement = document.getElementById('connectDeviceError');
-
-    if (!deviceId) {
-        errorElement.textContent = 'Please select a device';
-        errorElement.style.display = 'block';
-        return;
-    }
-
-    try {
-        await apiRequest(`/digital_twins/${dtId}/devices/${deviceId}`, 'POST');
-
-        // Close modal
-        const modal = bootstrap.Modal.getInstance(document.getElementById('connectDeviceModal'));
-        modal.hide();
-
-        // Reload digital twin details
-        loadDigitalTwinDetails(dtId);
-
-        showSuccess('Device connected successfully');
-    } catch (error) {
-        console.error('Error connecting device:', error);
-        errorElement.textContent = error.message;
-        errorElement.style.display = 'block';
     }
 }
 
