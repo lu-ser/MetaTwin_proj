@@ -35,10 +35,39 @@
                     </div>
 
                     <div class="mb-3">
+                        <label class="form-label">Device Configuration</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="device-config-type" id="ontology-based"
+                                value="ontology" checked>
+                            <label class="form-check-label" for="ontology-based">
+                                Ontology-based device
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="device-config-type" id="template-based"
+                                value="template">
+                            <label class="form-check-label" for="template-based">
+                                Template-based device
+                            </label>
+                        </div>
+                    </div>
+
+                    <div id="ontology-config" class="mb-3">
                         <label for="device-type-dropdown" class="form-label">Device Type</label>
-                        <select id="device-type-dropdown" class="form-select" required>
+                        <select id="device-type-dropdown" class="form-select">
                             <option value="" selected disabled>Select a device type...</option>
                         </select>
+                    </div>
+
+                    <div id="template-config" class="mb-3" style="display: none;">
+                        <label for="template-dropdown" class="form-label">Device Template</label>
+                        <select id="template-dropdown" class="form-select">
+                            <option value="" selected disabled>Select a template...</option>
+                        </select>
+                        <div class="form-text">
+                            <a href="/templates" target="_blank">Manage templates</a> or <a href="/api/v1/template/new"
+                                target="_blank">create a new template</a>
+                        </div>
                     </div>
 
                     <div class="mb-3">
@@ -49,21 +78,29 @@
                     </div>
 
                     <h5 class="mt-4">Attributes (optional):</h5>
-                    <div class="row mb-3">
-                        <div class="col-md-4">
-                            <select id="attr-name-dropdown" class="form-select">
-                                <option value="" selected disabled>Select attribute...</option>
-                            </select>
+                    <div id="ontology-attributes">
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <select id="attr-name-dropdown" class="form-select">
+                                    <option value="" selected disabled>Select attribute...</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <input type="number" class="form-control" id="attr-value-input" placeholder="Value">
+                            </div>
+                            <div class="col-md-4">
+                                <div id="attr-unit-display" class="form-text"></div>
+                            </div>
                         </div>
-                        <div class="col-md-4">
-                            <input type="number" class="form-control" id="attr-value-input" placeholder="Value">
-                        </div>
-                        <div class="col-md-4">
-                            <div id="attr-unit-display" class="form-text"></div>
-                        </div>
+                        <button type="button" id="add-attr-btn" class="btn btn-secondary mb-3">Add Attribute</button>
                     </div>
 
-                    <button type="button" id="add-attr-btn" class="btn btn-secondary mb-3">Add Attribute</button>
+                    <div id="template-attributes" style="display: none;">
+                        <div id="template-attrs-container">
+                            <!-- Template attributes will be dynamically loaded here -->
+                            <div class="alert alert-info">Select a template to see available attributes</div>
+                        </div>
+                    </div>
 
                     <div id="attributes-list" class="mb-3">
                         <!-- Added attributes will be displayed here -->
@@ -97,4 +134,202 @@
 
 {% block scripts %}
 <script src="{{ url_for('static', path='/js/devices.js') }}"></script>
+<script>
+    // Toggle between ontology-based and template-based device configuration
+    document.querySelectorAll('input[name="device-config-type"]').forEach(radio => {
+        radio.addEventListener('change', function () {
+            const isOntologyBased = this.value === 'ontology';
+            document.getElementById('ontology-config').style.display = isOntologyBased ? 'block' : 'none';
+            document.getElementById('template-config').style.display = isOntologyBased ? 'none' : 'block';
+            document.getElementById('ontology-attributes').style.display = isOntologyBased ? 'block' : 'none';
+            document.getElementById('template-attributes').style.display = isOntologyBased ? 'block' : 'none';
+
+            // Reset attributes list when switching between types
+            document.getElementById('attributes-list').innerHTML = '';
+        });
+    });
+
+    // Load templates when template-based is selected
+    document.getElementById('template-based').addEventListener('change', async function () {
+        try {
+            const response = await fetchWithAuth('/api/templates');
+            const templates = await response.json();
+
+            const templateDropdown = document.getElementById('template-dropdown');
+            templateDropdown.innerHTML = '<option value="" selected disabled>Select a template...</option>';
+
+            templates.forEach(template => {
+                const option = document.createElement('option');
+                option.value = template.id;
+                option.textContent = template.name;
+                option.dataset.template = JSON.stringify(template);
+                templateDropdown.appendChild(option);
+            });
+        } catch (error) {
+            console.error('Error loading templates:', error);
+        }
+    });
+
+    // Load template attributes when a template is selected
+    document.getElementById('template-dropdown').addEventListener('change', function () {
+        const selectedOption = this.options[this.selectedIndex];
+        if (selectedOption.dataset.template) {
+            const template = JSON.parse(selectedOption.dataset.template);
+            const container = document.getElementById('template-attrs-container');
+            container.innerHTML = '';
+
+            if (Object.keys(template.attributes).length === 0) {
+                container.innerHTML = '<div class="alert alert-warning">This template has no attributes defined</div>';
+                return;
+            }
+
+            // Create form fields for each template attribute
+            Object.entries(template.attributes).forEach(([attrName, attrDef]) => {
+                const row = document.createElement('div');
+                row.className = 'row mb-3';
+                row.innerHTML = `
+                    <div class="col-md-4">
+                        <label class="form-label">${attrName}</label>
+                        <div class="form-text">${attrDef.description || ''}</div>
+                    </div>
+                    <div class="col-md-4">
+                        <input type="${getInputType(attrDef.type)}" class="form-control template-attr-input" 
+                               id="template-attr-${attrName}" data-attr-name="${attrName}" 
+                               data-attr-type="${attrDef.type}" placeholder="Value"
+                               ${getInputConstraints(attrDef)}>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-text">${attrDef.unit_measure || ''}</div>
+                    </div>
+                `;
+                container.appendChild(row);
+            });
+        }
+    });
+
+    // Helper function to determine input type based on attribute type
+    function getInputType(attrType) {
+        switch (attrType) {
+            case 'number': return 'number';
+            case 'boolean': return 'checkbox';
+            case 'string': return 'text';
+            default: return 'text';
+        }
+    }
+
+    // Helper function to add constraints to input field
+    function getInputConstraints(attrDef) {
+        let constraints = '';
+
+        if (attrDef.constraints) {
+            if (attrDef.type === 'number') {
+                if (attrDef.constraints.min_value !== null && attrDef.constraints.min_value !== undefined) {
+                    constraints += ` min="${attrDef.constraints.min_value}"`;
+                }
+                if (attrDef.constraints.max_value !== null && attrDef.constraints.max_value !== undefined) {
+                    constraints += ` max="${attrDef.constraints.max_value}"`;
+                }
+            }
+            if (attrDef.constraints.required) {
+                constraints += ' required';
+            }
+        }
+
+        return constraints;
+    }
+
+    // Modify the form submission to handle both ontology and template-based devices
+    document.getElementById('create-device-form').addEventListener('submit', async function (e) {
+        e.preventDefault();
+
+        const isOntologyBased = document.getElementById('ontology-based').checked;
+        const deviceName = document.getElementById('device-name-input').value;
+        const ownerId = document.getElementById('owner-id-input').value || null;
+
+        let deviceData = {
+            name: deviceName,
+            owner_id: ownerId,
+            attributes: {}
+        };
+
+        if (isOntologyBased) {
+            // Handle ontology-based device
+            const deviceType = document.getElementById('device-type-dropdown').value;
+            if (!deviceType) {
+                alert('Please select a device type');
+                return;
+            }
+            deviceData.device_type = deviceType;
+
+            // Get attributes from the attributes list
+            const attrItems = document.querySelectorAll('.attr-item');
+            attrItems.forEach(item => {
+                const attrName = item.dataset.attrName;
+                const attrValue = parseFloat(item.dataset.attrValue);
+                const attrUnit = item.dataset.attrUnit || '';
+
+                deviceData.attributes[attrName] = {
+                    value: attrValue,
+                    unit_measure: attrUnit
+                };
+            });
+        } else {
+            // Handle template-based device
+            const templateId = document.getElementById('template-dropdown').value;
+            if (!templateId) {
+                alert('Please select a template');
+                return;
+            }
+            deviceData.template_id = templateId;
+
+            // Get values from template attribute inputs
+            const templateInputs = document.querySelectorAll('.template-attr-input');
+            templateInputs.forEach(input => {
+                const attrName = input.dataset.attrName;
+                let attrValue;
+
+                if (input.dataset.attrType === 'boolean') {
+                    attrValue = input.checked;
+                } else if (input.dataset.attrType === 'number') {
+                    attrValue = parseFloat(input.value);
+                } else {
+                    attrValue = input.value;
+                }
+
+                // Get unit measure from the template
+                const templateOption = document.getElementById('template-dropdown').options[
+                    document.getElementById('template-dropdown').selectedIndex
+                ];
+                const template = JSON.parse(templateOption.dataset.template);
+                const unitMeasure = template.attributes[attrName]?.unit_measure || '';
+
+                deviceData.attributes[attrName] = {
+                    value: attrValue,
+                    unit_measure: unitMeasure
+                };
+            });
+        }
+
+        try {
+            const response = await fetchWithAuth('/api/devices', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(deviceData)
+            });
+
+            if (response.ok) {
+                alert('Device created successfully!');
+                location.reload();
+            } else {
+                const errorData = await response.json();
+                alert(`Error: ${errorData.detail || 'Unknown error'}`);
+            }
+        } catch (error) {
+            console.error('Error creating device:', error);
+            alert('Error creating device. Please try again.');
+        }
+    });
+</script>
 {% endblock %}

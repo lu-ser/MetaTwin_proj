@@ -9,11 +9,11 @@ import uvicorn
 import os
 from pathlib import Path
 
-# Assicurati che la directory dei dati esista
+# Make sure the data directory exists
 data_dir = Path(DATA_DIR)
 data_dir.mkdir(exist_ok=True)
 
-# Copia il file class_hierarchy.json se non esiste già
+# Copy the class_hierarchy.json file if it doesn't exist already
 ontology_file = Path(settings.CLASS_HIERARCHY_PATH)
 if not ontology_file.exists():
     import shutil
@@ -27,7 +27,7 @@ app = FastAPI(
     debug=settings.DEBUG
 )
 
-# Configurazione CORS
+# CORS configuration
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.ALLOW_ORIGINS,
@@ -36,17 +36,16 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
-# Configurazione StaticFiles per servire file statici
+# Configure StaticFiles to serve static files
 app.mount("/static", StaticFiles(directory=str(ROOT_DIR / "app" / "static")), name="static")
 
-# Configurazione Templates Jinja2
+# Configure Jinja2 Templates
 templates = Jinja2Templates(directory=str(ROOT_DIR / "app" / "templates"))
 
-# Collega le API
-app.include_router(router, prefix=settings.API_PREFIX)
+# Connect the APIs to the correct route
+app.include_router(router, prefix="/api/v1")
 
-# Eventi di startup e shutdown
+# Startup and shutdown events
 @app.on_event("startup")
 async def startup_db_client():
     await connect_to_mongo()
@@ -58,8 +57,8 @@ async def shutdown_db_client():
 @app.get("/")
 async def root():
     return {
-        "message": f"Benvenuto in {settings.PROJECT_NAME} API",
-        "docs": f"{settings.API_PREFIX}/docs"
+        "message": f"Welcome to {settings.PROJECT_NAME} API",
+        "docs": f"/api/v1/docs"
     }
 
 if __name__ == "__main__":

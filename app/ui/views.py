@@ -81,6 +81,50 @@ async def users(request: Request, current_user: Any = Depends(get_current_ui_use
         }
     )
 
+@router.get("/templates", response_class=HTMLResponse)
+async def templates_page(request: Request, template_id: str = Query(None), current_user: Any = Depends(get_current_ui_user)):
+    """Renderizza la pagina di gestione dei template
+    
+    Se il parametro template_id è specificato, seleziona automaticamente quel template
+    """
+    return templates.TemplateResponse(
+        "templates.html" if Path(ROOT_DIR / "app" / "templates" / "templates.html").exists() else "templates_fallback.html", 
+        {
+            "request": request, 
+            "title": f"{settings.PROJECT_NAME} - Templates",
+            "selected_template": template_id
+        }
+    )
+
+@router.get("/template/new", response_class=HTMLResponse)
+async def new_template(request: Request, source_type: Optional[str] = Query(None), current_user: Any = Depends(get_current_ui_user)):
+    """Renderizza la pagina di creazione di un nuovo template
+    
+    Se il parametro source_type è specificato, crea un template a partire da un tipo dell'ontologia
+    """
+    return templates.TemplateResponse(
+        "template_edit.html" if Path(ROOT_DIR / "app" / "templates" / "template_edit.html").exists() else "templates_fallback.html", 
+        {
+            "request": request, 
+            "title": f"{settings.PROJECT_NAME} - Nuovo Template",
+            "source_type": source_type,
+            "is_new": True
+        }
+    )
+
+@router.get("/template/{template_id}", response_class=HTMLResponse)
+async def edit_template(request: Request, template_id: str, current_user: Any = Depends(get_current_ui_user)):
+    """Renderizza la pagina di modifica di un template esistente"""
+    return templates.TemplateResponse(
+        "template_edit.html" if Path(ROOT_DIR / "app" / "templates" / "template_edit.html").exists() else "templates_fallback.html", 
+        {
+            "request": request, 
+            "title": f"{settings.PROJECT_NAME} - Modifica Template",
+            "template_id": template_id,
+            "is_new": False
+        }
+    )
+
 @router.get("/ontology", response_class=HTMLResponse)
 async def ontology(request: Request, class_name: str = Query(None), current_user: Any = Depends(get_current_ui_user)):
     """Renderizza la pagina di visualizzazione dell'ontologia

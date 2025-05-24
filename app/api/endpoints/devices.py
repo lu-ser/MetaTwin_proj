@@ -1,6 +1,6 @@
 # app/api/endpoints/devices.py
-from fastapi import APIRouter, HTTPException, Body, Depends, Header, Query
-from typing import List, Optional, Dict, Any
+from fastapi import APIRouter, HTTPException, Body, Depends, Header, Query, Path
+from typing import List, Optional, Dict, Any, Union
 from app.models.device import Device
 from app.db.crud import create_document, get_document, update_document, delete_document, list_documents
 from app.services.digital_twin_service import create_digital_twin_for_device
@@ -19,7 +19,7 @@ async def create_device(
     """
     Crea un nuovo dispositivo e il suo digital twin
     
-    Se specificato owner_id, aggiorna anche l'utente collegando il dispositivo
+    Il dispositivo può essere basato sull'ontologia (device_type) o su un template (template_id)
     """
     # Se l'owner_id non è specificato, imposta l'utente corrente come proprietario
     if not device.owner_id:
@@ -32,6 +32,22 @@ async def create_device(
             status_code=403, 
             detail="Non hai i permessi per creare dispositivi per altri utenti"
         )
+    
+    # Verifica che il device abbia o device_type o template_id
+    if not device.device_type and not device.template_id:
+        raise HTTPException(
+            status_code=400,
+            detail="È necessario specificare almeno uno tra device_type (ontologia) e template_id (template personalizzato)"
+        )
+    
+    # Se viene fornito template_id, verifica che esista
+    if device.template_id:
+        template = await get_document("device_templates", device.template_id)
+        if not template:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Template con ID '{device.template_id}' non trovato"
+            )
     
     # Se è richiesto di rigenerare API key o non è presente
     if regenerate_api_key or not device.api_key:
@@ -123,7 +139,7 @@ async def update_device(
     """
     Aggiorna un dispositivo esistente
     
-    Se cambia owner_id, aggiorna anche i modelli utente coinvolti
+    Supporta sia dispositivi basati su ontologia che su template
     """
     existing_device = await get_document("devices", device_id)
     if not existing_device:
@@ -136,6 +152,22 @@ async def update_device(
             status_code=403, 
             detail="Non hai i permessi per modificare questo dispositivo"
         )
+    
+    # Verifica che device_update abbia o device_type o template_id
+    if not device_update.device_type and not device_update.template_id:
+        raise HTTPException(
+            status_code=400,
+            detail="È necessario specificare almeno uno tra device_type (ontologia) e template_id (template personalizzato)"
+        )
+    
+    # Se viene fornito template_id, verifica che esista
+    if device_update.template_id:
+        template = await get_document("device_templates", device_update.template_id)
+        if not template:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Template con ID '{device_update.template_id}' non trovato"
+            )
     
     # Prepara i dati dell'aggiornamento
     update_data = device_update.dict(exclude_unset=True)
@@ -287,3 +319,84 @@ async def regenerate_api_key(
     await update_document("devices", device_id, {"api_key": new_api_key})
     
     return {"api_key": new_api_key}
+
+@router.post("/data", status_code=200)
+async def send_device_data(
+    data: Dict[str, Any] = Body(...),
+    device: Device = Depends(get_device_by_api_key)
+):
+    """
+    Invia dati da un dispositivo e aggiorna il suo digital twin
+    
+    Supporta sia dispositivi basati su ontologia che template
+    """
+    from app.models.sensor import SensorMeasurement
+    import datetime
+    from app.models.device_template import DeviceTemplate
+    
+    # Timestamp corrente
+    now = datetime.datetime.utcnow().isoformat()
+    
+    # Validazione dei dati ricevuti
+    valid_data = {}
+    
+    # Se il dispositivo è basato su template
+    if device.get("template_id"):
+        template = await get_document("device_templates", device["template_id"])
+        if template:
+            template_model = DeviceTemplate(**template)
+            
+            # Valida i dati rispetto al template
+            for attr_name, value in data.items():
+                if attr_name in template_model.attributes:
+                    # Semplice validazione del tipo
+                    if template_model.validate_attribute_value(attr_name, value):
+                        valid_data[attr_name] = {
+                            "value": value,
+                            "unit_measure": template_model.attributes[attr_name].unit_measure or ""
+                        }
+    
+    # Se il dispositivo è basato su ontologia
+    elif device.get("device_type"):
+        from app.ontology.manager import OntologyManager
+        ontology = OntologyManager()
+        
+        for attr_name, value in data.items():
+            # Verifica che l'attributo sia compatibile col tipo di dispositivo
+            if ontology.is_sensor_compatible(device["device_type"], attr_name):
+                valid_data[attr_name] = {
+                    "value": value,
+                    "unit_measure": ontology.get_sensor_details(attr_name).get("unit_measure", "")
+                }
+    
+    # Aggiorna gli attributi nel dispositivo
+    if valid_data:
+        await update_document("devices", device["id"], {"attributes": valid_data})
+        
+        # Aggiorna anche il digital twin
+        if device.get("digital_twin_id"):
+            digital_twin = await get_document("digital_twins", device["digital_twin_id"])
+            if digital_twin:
+                twin_state = digital_twin.get("state", {})
+                
+                # Aggiorna lo stato con i nuovi valori
+                for attr_name, attr_data in valid_data.items():
+                    if attr_name not in twin_state:
+                        twin_state[attr_name] = []
+                    
+                    # Aggiungi la nuova misurazione
+                    twin_state[attr_name].append({
+                        "timestamp": now,
+                        "value": attr_data["value"],
+                        "unit_measure": attr_data["unit_measure"]
+                    })
+                    
+                    # Mantieni solo le ultime 100 misurazioni
+                    if len(twin_state[attr_name]) > 100:
+                        twin_state[attr_name] = twin_state[attr_name][-100:]
+                
+                await update_document("digital_twins", device["digital_twin_id"], {"state": twin_state})
+        
+        return {"status": "success", "updated_attributes": list(valid_data.keys())}
+    else:
+        return {"status": "warning", "message": "Nessun attributo valido fornito"}

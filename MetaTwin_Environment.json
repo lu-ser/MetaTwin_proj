@@ -1,0 +1,69 @@
+{
+    "id": "421e9f1a-3e54-4d10-8b37-9a4982331a8f",
+    "name": "MetaTwin Environment",
+    "values": [
+        {
+            "key": "base_url",
+            "value": "http://localhost:8000/api",
+            "type": "default",
+            "enabled": true
+        },
+        {
+            "key": "access_token",
+            "value": "",
+            "type": "secret",
+            "enabled": true
+        },
+        {
+            "key": "refresh_token",
+            "value": "",
+            "type": "secret",
+            "enabled": true
+        },
+        {
+            "key": "user_id",
+            "value": "",
+            "type": "default",
+            "enabled": true
+        },
+        {
+            "key": "device_id",
+            "value": "",
+            "type": "default",
+            "enabled": true
+        },
+        {
+            "key": "template_id",
+            "value": "",
+            "type": "default",
+            "enabled": true
+        },
+        {
+            "key": "twin_id",
+            "value": "",
+            "type": "default",
+            "enabled": true
+        },
+        {
+            "key": "device_api_key",
+            "value": "",
+            "type": "secret",
+            "enabled": true
+        },
+        {
+            "key": "sensor_type",
+            "value": "Temperature",
+            "type": "default",
+            "enabled": true
+        },
+        {
+            "key": "device_type",
+            "value": "Weather Station",
+            "type": "default",
+            "enabled": true
+        }
+    ],
+    "_postman_variable_scope": "environment",
+    "_postman_exported_at": "2023-07-20T12:00:00.000Z",
+    "_postman_exported_using": "Postman/10.15.1"
+}

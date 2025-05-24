@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ title }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='/css/bootstrap.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', path='/css/styles.css') }}">
+</head>
+
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/">MetaTwin</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
+                aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/dashboard">Dashboard</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/devices">Devices</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="/templates">Templates</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/ontology">Ontology</a>
+                    </li>
+                </ul>
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/profile">Profile</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" id="logout-btn">Logout</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div class="row">
+            <div class="col-12">
+                <h1 class="mb-4">Template Management</h1>
+
+                <div class="alert alert-info">
+                    <h4 class="alert-heading">New Feature!</h4>
+                    <p>Template management is a new feature that allows you to create custom devices
+                        outside the predefined ontology.</p>
+                    <p>With templates you can:</p>
+                    <ul>
+                        <li>Define custom data structures for your devices</li>
+                        <li>Specify attributes with different types (numbers, text, booleans, etc.)</li>
+                        <li>Set constraints and validation for attribute values</li>
+                        <li>Create digital twins based on your custom templates</li>
+                    </ul>
+                </div>
+
+                <div class="d-flex justify-content-between mb-4">
+                    <h2>Your Templates</h2>
+                    <div>
+                        <a href="/api/v1/template/new" class="btn btn-primary me-2">
+                            <i class="bi bi-plus-circle"></i> New Template
+                        </a>
+                        <div class="btn-group">
+                            <button class="btn btn-outline-secondary dropdown-toggle" type="button"
+                                id="createFromOntology" data-bs-toggle="dropdown" aria-expanded="false">
+                                Create from Ontology
+                            </button>
+                            <ul class="dropdown-menu" aria-labelledby="createFromOntology" id="ontologyTypesList">
+                                <li><a class="dropdown-item" href="#" data-loading="true">Loading types...</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table" id="templateTable">
+                                <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Description</th>
+                                        <th>Attributes</th>
+                                        <th>Type</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td colspan="5" class="text-center">Loading templates...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', path='/js/bootstrap.bundle.min.js') }}"></script>
+    <script src="{{ url_for('static', path='/js/api.js') }}"></script>
+
+    <script>
+        // Check authentication
+        checkAuth();
+
+        // Load template list
+        document.addEventListener('DOMContentLoaded', async function () {
+            try {
+                // Load templates
+                const response = await fetchWithAuth('/api/v1/templates');
+                const templates = await response.json();
+
+                renderTemplatesTable(templates);
+
+                // Load ontology types for dropdown
+                const ontologyResponse = await fetchWithAuth('/api/v1/sensors');
+                const sensorTypes = await ontologyResponse.json();
+
+                const ontologyTypesList = document.getElementById('ontologyTypesList');
+                ontologyTypesList.innerHTML = '';
+
+                sensorTypes.forEach(type => {
+                    const li = document.createElement('li');
+                    const a = document.createElement('a');
+                    a.className = 'dropdown-item';
+                    a.href = `/api/v1/template/new?source_type=${encodeURIComponent(type.name)}`;
+                    a.textContent = type.name;
+                    li.appendChild(a);
+                    ontologyTypesList.appendChild(li);
+                });
+
+                if (sensorTypes.length === 0) {
+                    const li = document.createElement('li');
+                    const a = document.createElement('a');
+                    a.className = 'dropdown-item disabled';
+                    a.href = '#';
+                    a.textContent = 'No types available';
+                    li.appendChild(a);
+                    ontologyTypesList.appendChild(li);
+                }
+            } catch (error) {
+                console.error('Error loading data:', error);
+                document.querySelector('#templateTable tbody').innerHTML =
+                    '<tr><td colspan="5" class="text-center text-danger">Error loading templates</td></tr>';
+            }
+        });
+
+        function renderTemplatesTable(templates) {
+            const tableBody = document.querySelector('#templateTable tbody');
+
+            if (templates.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="5" class="text-center">No templates available</td></tr>';
+                return;
+            }
+
+            tableBody.innerHTML = '';
+            templates.forEach(template => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${escapeHtml(template.name)}</td>
+                    <td>${escapeHtml(template.description || '')}</td>
+                    <td>${Object.keys(template.attributes || {}).length}</td>
+                    <td>${template.is_ontology_based ? '<span class="badge bg-info">Ontology</span>' : '<span class="badge bg-success">Custom</span>'}</td>
+                    <td>
+                        <div class="btn-group btn-group-sm">
+                            <a href="/template/${template.id}" class="btn btn-outline-primary">Edit</a>
+                            <button class="btn btn-outline-danger" onclick="deleteTemplate('${template.id}')">Delete</button>
+                        </div>
+                    </td>
+                `;
+                tableBody.appendChild(tr);
+            });
+        }
+
+        async function deleteTemplate(templateId) {
+            if (!confirm('Are you sure you want to delete this template? Devices using it may stop working correctly.')) {
+                return;
+            }
+
+            try {
+                const response = await fetchWithAuth(`/api/v1/templates/${templateId}`, {
+                    method: 'DELETE'
+                });
+
+                if (response.ok) {
+                    window.location.reload();
+                } else {
+                    const error = await response.json();
+                    alert(`Error: ${error.detail || 'Unable to delete template'}`);
+                }
+            } catch (error) {
+                console.error('Error deleting template:', error);
+                alert('An error occurred while deleting the template');
+            }
+        }
+
+        function escapeHtml(unsafe) {
+            if (!unsafe) return '';
+            return unsafe
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        // Logout
+        document.getElementById('logout-btn').addEventListener('click', function (e) {
+            e.preventDefault();
+            localStorage.removeItem('token');
+            window.location.href = '/login';
+        });
+    </script>
+</body>
+
+</html>

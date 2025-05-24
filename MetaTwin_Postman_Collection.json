@@ -1,97 +1,45 @@
 {
     "info": {
-        "_postman_id": "e4bda4d0-7f2b-4ddd-bea0-71a2bb83a785",
-        "name": "MetaTwin Platform API",
-        "description": "API per la piattaforma MetaTwin per la gestione di dispositivi IoT e digital twins.",
+        "_postman_id": "digital-twin-platform-api",
+        "name": "Digital Twin Platform API",
+        "description": "Complete API collection for the Digital Twin Platform built with FastAPI",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
     },
+    "auth": {
+        "type": "bearer",
+        "bearer": [
+            {
+                "key": "token",
+                "value": "{{access_token}}",
+                "type": "string"
+            }
+        ]
+    },
+    "variable": [
+        {
+            "key": "base_url",
+            "value": "{{base_url}}/api/v1"
+        }
+    ],
     "item": [
         {
-            "name": "Autenticazione",
+            "name": "Authentication",
             "item": [
                 {
-                    "name": "Registrazione Utente",
-                    "request": {
-                        "method": "POST",
-                        "header": [
-                            {
-                                "key": "Content-Type",
-                                "value": "application/json"
-                            }
-                        ],
-                        "body": {
-                            "mode": "raw",
-                            "raw": "{\n    \"name\": \"Mario Rossi\",\n    \"email\": \"mario.rossi@example.com\",\n    \"password\": \"Password123!\"\n}"
-                        },
-                        "url": {
-                            "raw": "{{base_url}}/api/v1/auth/register",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "v1",
-                                "auth",
-                                "register"
-                            ]
-                        },
-                        "description": "Registra un nuovo utente sulla piattaforma"
-                    },
-                    "response": []
-                },
-                {
-                    "name": "Login",
+                    "name": "Login (OAuth2 Token)",
                     "event": [
                         {
                             "listen": "test",
                             "script": {
                                 "exec": [
-                                    "var jsonData = pm.response.json();",
-                                    "pm.environment.set(\"auth_token\", jsonData.access_token);"
-                                ],
-                                "type": "text/javascript"
-                            }
-                        }
-                    ],
-                    "request": {
-                        "method": "POST",
-                        "header": [
-                            {
-                                "key": "Content-Type",
-                                "value": "application/json"
-                            }
-                        ],
-                        "body": {
-                            "mode": "raw",
-                            "raw": "{\n    \"email\": \"mario.rossi@example.com\",\n    \"password\": \"Password123!\"\n}"
-                        },
-                        "url": {
-                            "raw": "{{base_url}}/api/v1/auth/login",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "v1",
-                                "auth",
-                                "login"
-                            ]
-                        },
-                        "description": "Effettua il login e ottiene un token JWT"
-                    },
-                    "response": []
-                },
-                {
-                    "name": "Ottieni Token (OAuth2)",
-                    "event": [
-                        {
-                            "listen": "test",
-                            "script": {
-                                "exec": [
-                                    "var jsonData = pm.response.json();",
-                                    "pm.environment.set(\"auth_token\", jsonData.access_token);"
-                                ],
-                                "type": "text/javascript"
+                                    "if (pm.response.code === 200) {",
+                                    "    const response = pm.response.json();",
+                                    "    pm.environment.set('access_token', response.access_token);",
+                                    "    pm.test('Token obtained successfully', function () {",
+                                    "        pm.expect(response.access_token).to.be.a('string');",
+                                    "    });",
+                                    "}"
+                                ]
                             }
                         }
                     ],
@@ -108,120 +56,31 @@
                             "urlencoded": [
                                 {
                                     "key": "username",
-                                    "value": "mario.rossi@example.com",
+                                    "value": "{{user_email}}",
                                     "type": "text"
                                 },
                                 {
                                     "key": "password",
-                                    "value": "Password123!",
+                                    "value": "{{user_password}}",
                                     "type": "text"
                                 }
                             ]
                         },
                         "url": {
-                            "raw": "{{base_url}}/api/v1/auth/token",
+                            "raw": "{{base_url}}/auth/token",
                             "host": [
                                 "{{base_url}}"
                             ],
                             "path": [
-                                "api",
-                                "v1",
                                 "auth",
                                 "token"
                             ]
-                        },
-                        "description": "Ottiene un token OAuth2 per l'autenticazione API"
-                    },
-                    "response": []
+                        }
+                    }
                 },
                 {
-                    "name": "Dati Utente Corrente",
+                    "name": "Register User",
                     "request": {
-                        "auth": {
-                            "type": "bearer",
-                            "bearer": [
-                                {
-                                    "key": "token",
-                                    "value": "{{auth_token}}",
-                                    "type": "string"
-                                }
-                            ]
-                        },
-                        "method": "GET",
-                        "header": [],
-                        "url": {
-                            "raw": "{{base_url}}/api/v1/auth/me",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "v1",
-                                "auth",
-                                "me"
-                            ]
-                        },
-                        "description": "Recupera i dati dell'utente autenticato"
-                    },
-                    "response": []
-                }
-            ],
-            "description": "Operazioni relative all'autenticazione degli utenti"
-        },
-        {
-            "name": "Utenti",
-            "item": [
-                {
-                    "name": "Lista Utenti",
-                    "request": {
-                        "auth": {
-                            "type": "bearer",
-                            "bearer": [
-                                {
-                                    "key": "token",
-                                    "value": "{{auth_token}}",
-                                    "type": "string"
-                                }
-                            ]
-                        },
-                        "method": "GET",
-                        "header": [],
-                        "url": {
-                            "raw": "{{base_url}}/api/v1/users",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "v1",
-                                "users"
-                            ],
-                            "query": [
-                                {
-                                    "key": "name",
-                                    "value": "Mario",
-                                    "description": "Filtra per nome (opzionale)",
-                                    "disabled": true
-                                }
-                            ]
-                        },
-                        "description": "Recupera la lista degli utenti, opzionalmente filtrati per nome"
-                    },
-                    "response": []
-                },
-                {
-                    "name": "Crea Utente",
-                    "request": {
-                        "auth": {
-                            "type": "bearer",
-                            "bearer": [
-                                {
-                                    "key": "token",
-                                    "value": "{{auth_token}}",
-                                    "type": "string"
-                                }
-                            ]
-                        },
                         "method": "POST",
                         "header": [
                             {
@@ -231,67 +90,105 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n    \"name\": \"Luisa Bianchi\",\n    \"email\": \"luisa.bianchi@example.com\"\n}"
+                            "raw": "{\n    \"name\": \"{{new_user_name}}\",\n    \"email\": \"{{new_user_email}}\",\n    \"password\": \"{{new_user_password}}\"\n}"
                         },
                         "url": {
-                            "raw": "{{base_url}}/api/v1/users",
+                            "raw": "{{base_url}}/auth/register",
                             "host": [
                                 "{{base_url}}"
                             ],
                             "path": [
-                                "api",
-                                "v1",
-                                "users"
+                                "auth",
+                                "register"
                             ]
-                        },
-                        "description": "Crea un nuovo utente (richiede autenticazione)"
-                    },
-                    "response": []
+                        }
+                    }
                 },
                 {
-                    "name": "Dettagli Utente",
+                    "name": "Get Current User",
                     "request": {
-                        "auth": {
-                            "type": "bearer",
-                            "bearer": [
-                                {
-                                    "key": "token",
-                                    "value": "{{auth_token}}",
-                                    "type": "string"
-                                }
-                            ]
-                        },
                         "method": "GET",
                         "header": [],
                         "url": {
-                            "raw": "{{base_url}}/api/v1/users/{{user_id}}",
+                            "raw": "{{base_url}}/auth/me",
                             "host": [
                                 "{{base_url}}"
                             ],
                             "path": [
-                                "api",
-                                "v1",
+                                "auth",
+                                "me"
+                            ]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Users",
+            "item": [
+                {
+                    "name": "Create User",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"name\": \"Test User\",\n    \"email\": \"test@example.com\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/users/",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "users",
+                                ""
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "List Users",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/users/",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "users",
+                                ""
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Get User by ID",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/users/{{user_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
                                 "users",
                                 "{{user_id}}"
                             ]
-                        },
-                        "description": "Recupera i dettagli di un utente specifico"
-                    },
-                    "response": []
+                        }
+                    }
                 },
                 {
-                    "name": "Aggiorna Utente",
+                    "name": "Update User",
                     "request": {
-                        "auth": {
-                            "type": "bearer",
-                            "bearer": [
-                                {
-                                    "key": "token",
-                                    "value": "{{auth_token}}",
-                                    "type": "string"
-                                }
-                            ]
-                        },
                         "method": "PUT",
                         "header": [
                             {
@@ -301,176 +198,95 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n    \"name\": \"Mario Rossi Aggiornato\",\n    \"email\": \"mario.rossi@example.com\"\n}"
+                            "raw": "{\n    \"name\": \"Updated User Name\",\n    \"email\": \"updated@example.com\"\n}"
                         },
                         "url": {
-                            "raw": "{{base_url}}/api/v1/users/{{user_id}}",
+                            "raw": "{{base_url}}/users/{{user_id}}",
                             "host": [
                                 "{{base_url}}"
                             ],
                             "path": [
-                                "api",
-                                "v1",
                                 "users",
                                 "{{user_id}}"
                             ]
-                        },
-                        "description": "Aggiorna i dati di un utente esistente"
-                    },
-                    "response": []
+                        }
+                    }
                 },
                 {
-                    "name": "Elimina Utente",
+                    "name": "Delete User",
                     "request": {
-                        "auth": {
-                            "type": "bearer",
-                            "bearer": [
-                                {
-                                    "key": "token",
-                                    "value": "{{auth_token}}",
-                                    "type": "string"
-                                }
-                            ]
-                        },
                         "method": "DELETE",
                         "header": [],
                         "url": {
-                            "raw": "{{base_url}}/api/v1/users/{{user_id}}",
+                            "raw": "{{base_url}}/users/{{user_id}}",
                             "host": [
                                 "{{base_url}}"
                             ],
                             "path": [
-                                "api",
-                                "v1",
                                 "users",
                                 "{{user_id}}"
                             ]
-                        },
-                        "description": "Elimina un utente e tutti i suoi dispositivi e digital twins associati"
-                    },
-                    "response": []
+                        }
+                    }
                 },
                 {
-                    "name": "Dispositivi Utente",
+                    "name": "Get User Devices",
                     "request": {
-                        "auth": {
-                            "type": "bearer",
-                            "bearer": [
-                                {
-                                    "key": "token",
-                                    "value": "{{auth_token}}",
-                                    "type": "string"
-                                }
-                            ]
-                        },
                         "method": "GET",
                         "header": [],
                         "url": {
-                            "raw": "{{base_url}}/api/v1/users/{{user_id}}/devices",
+                            "raw": "{{base_url}}/users/{{user_id}}/devices",
                             "host": [
                                 "{{base_url}}"
                             ],
                             "path": [
-                                "api",
-                                "v1",
                                 "users",
                                 "{{user_id}}",
                                 "devices"
                             ]
-                        },
-                        "description": "Recupera tutti i dispositivi di un utente specifico"
-                    },
-                    "response": []
+                        }
+                    }
                 },
                 {
-                    "name": "Digital Twins Utente",
+                    "name": "Get User Digital Twins",
                     "request": {
-                        "auth": {
-                            "type": "bearer",
-                            "bearer": [
-                                {
-                                    "key": "token",
-                                    "value": "{{auth_token}}",
-                                    "type": "string"
-                                }
-                            ]
-                        },
                         "method": "GET",
                         "header": [],
                         "url": {
-                            "raw": "{{base_url}}/api/v1/users/{{user_id}}/digital-twins",
+                            "raw": "{{base_url}}/users/{{user_id}}/digital-twins",
                             "host": [
                                 "{{base_url}}"
                             ],
                             "path": [
-                                "api",
-                                "v1",
                                 "users",
                                 "{{user_id}}",
                                 "digital-twins"
                             ]
-                        },
-                        "description": "Recupera tutti i digital twins di un utente specifico"
-                    },
-                    "response": []
+                        }
+                    }
                 }
-            ],
-            "description": "Operazioni relative alla gestione degli utenti"
+            ]
         },
         {
-            "name": "Dispositivi",
+            "name": "Devices",
             "item": [
                 {
-                    "name": "Lista Dispositivi",
+                    "name": "Create Device",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "if (pm.response.code === 201) {",
+                                    "    const response = pm.response.json();",
+                                    "    pm.environment.set('device_id', response.id);",
+                                    "    pm.environment.set('device_api_key', response.api_key);",
+                                    "}"
+                                ]
+                            }
+                        }
+                    ],
                     "request": {
-                        "auth": {
-                            "type": "bearer",
-                            "bearer": [
-                                {
-                                    "key": "token",
-                                    "value": "{{auth_token}}",
-                                    "type": "string"
-                                }
-                            ]
-                        },
-                        "method": "GET",
-                        "header": [],
-                        "url": {
-                            "raw": "{{base_url}}/api/v1/devices",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "v1",
-                                "devices"
-                            ],
-                            "query": [
-                                {
-                                    "key": "owner_id",
-                                    "value": "{{user_id}}",
-                                    "description": "Filtra per proprietario (opzionale)",
-                                    "disabled": true
-                                }
-                            ]
-                        },
-                        "description": "Recupera la lista dei dispositivi, opzionalmente filtrati per proprietario"
-                    },
-                    "response": []
-                },
-                {
-                    "name": "Crea Dispositivo",
-                    "request": {
-                        "auth": {
-                            "type": "bearer",
-                            "bearer": [
-                                {
-                                    "key": "token",
-                                    "value": "{{auth_token}}",
-                                    "type": "string"
-                                }
-                            ]
-                        },
                         "method": "POST",
                         "header": [
                             {
@@ -480,73 +296,57 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n    \"name\": \"Sensore Temperatura\",\n    \"description\": \"Sensore di temperatura per ambiente interno\",\n    \"device_type\": \"TemperatureSensor\",\n    \"owner_id\": \"{{user_id}}\"\n}"
+                            "raw": "{\n    \"name\": \"Test Device\",\n    \"device_type\": \"heartRateMonitor\",\n    \"attributes\": {\n        \"averageHeartRate\": {\n            \"value\": 75.0,\n            \"unit_measure\": \"bpm\"\n        }\n    },\n    \"metadata\": {\n        \"location\": \"Living Room\",\n        \"manufacturer\": \"TestCorp\"\n    }\n}"
                         },
                         "url": {
-                            "raw": "{{base_url}}/api/v1/devices?regenerate_api_key=true",
+                            "raw": "{{base_url}}/devices/",
                             "host": [
                                 "{{base_url}}"
                             ],
                             "path": [
-                                "api",
-                                "v1",
-                                "devices"
-                            ],
-                            "query": [
-                                {
-                                    "key": "regenerate_api_key",
-                                    "value": "true"
-                                }
+                                "devices",
+                                ""
                             ]
-                        },
-                        "description": "Crea un nuovo dispositivo e il suo digital twin associato"
-                    },
-                    "response": []
+                        }
+                    }
                 },
                 {
-                    "name": "Dettagli Dispositivo",
+                    "name": "List Devices",
                     "request": {
-                        "auth": {
-                            "type": "bearer",
-                            "bearer": [
-                                {
-                                    "key": "token",
-                                    "value": "{{auth_token}}",
-                                    "type": "string"
-                                }
-                            ]
-                        },
                         "method": "GET",
                         "header": [],
                         "url": {
-                            "raw": "{{base_url}}/api/v1/devices/{{device_id}}",
+                            "raw": "{{base_url}}/devices/",
                             "host": [
                                 "{{base_url}}"
                             ],
                             "path": [
-                                "api",
-                                "v1",
+                                "devices",
+                                ""
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Get Device by ID",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/devices/{{device_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
                                 "devices",
                                 "{{device_id}}"
                             ]
-                        },
-                        "description": "Recupera i dettagli di un dispositivo specifico"
-                    },
-                    "response": []
+                        }
+                    }
                 },
                 {
-                    "name": "Aggiorna Dispositivo",
+                    "name": "Update Device",
                     "request": {
-                        "auth": {
-                            "type": "bearer",
-                            "bearer": [
-                                {
-                                    "key": "token",
-                                    "value": "{{auth_token}}",
-                                    "type": "string"
-                                }
-                            ]
-                        },
                         "method": "PUT",
                         "header": [
                             {
@@ -556,64 +356,43 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n    \"name\": \"Sensore Temperatura Aggiornato\",\n    \"description\": \"Sensore di temperatura per ambiente esterno\",\n    \"device_type\": \"TemperatureSensor\",\n    \"owner_id\": \"{{user_id}}\"\n}"
+                            "raw": "{\n    \"name\": \"Updated Device Name\",\n    \"device_type\": \"heartRateMonitor\",\n    \"metadata\": {\n        \"location\": \"Bedroom\",\n        \"manufacturer\": \"TestCorp\"\n    }\n}"
                         },
                         "url": {
-                            "raw": "{{base_url}}/api/v1/devices/{{device_id}}?regenerate_api_key=false",
+                            "raw": "{{base_url}}/devices/{{device_id}}",
                             "host": [
                                 "{{base_url}}"
                             ],
                             "path": [
-                                "api",
-                                "v1",
                                 "devices",
                                 "{{device_id}}"
-                            ],
-                            "query": [
-                                {
-                                    "key": "regenerate_api_key",
-                                    "value": "false"
-                                }
                             ]
-                        },
-                        "description": "Aggiorna i dati di un dispositivo esistente"
-                    },
-                    "response": []
+                        }
+                    }
                 },
                 {
-                    "name": "Elimina Dispositivo",
+                    "name": "Delete Device",
                     "request": {
-                        "auth": {
-                            "type": "bearer",
-                            "bearer": [
-                                {
-                                    "key": "token",
-                                    "value": "{{auth_token}}",
-                                    "type": "string"
-                                }
-                            ]
-                        },
                         "method": "DELETE",
                         "header": [],
                         "url": {
-                            "raw": "{{base_url}}/api/v1/devices/{{device_id}}",
+                            "raw": "{{base_url}}/devices/{{device_id}}",
                             "host": [
                                 "{{base_url}}"
                             ],
                             "path": [
-                                "api",
-                                "v1",
                                 "devices",
                                 "{{device_id}}"
                             ]
-                        },
-                        "description": "Elimina un dispositivo e il suo digital twin associato"
-                    },
-                    "response": []
+                        }
+                    }
                 },
                 {
-                    "name": "Verifica Dispositivo",
+                    "name": "Verify Device (API Key Auth)",
                     "request": {
+                        "auth": {
+                            "type": "noauth"
+                        },
                         "method": "POST",
                         "header": [
                             {
@@ -622,45 +401,42 @@
                             }
                         ],
                         "url": {
-                            "raw": "{{base_url}}/api/v1/devices/auth/verify",
+                            "raw": "{{base_url}}/devices/auth/verify",
                             "host": [
                                 "{{base_url}}"
                             ],
                             "path": [
-                                "api",
-                                "v1",
                                 "devices",
                                 "auth",
                                 "verify"
                             ]
-                        },
-                        "description": "Verifica l'autenticazione di un dispositivo tramite API key"
-                    },
-                    "response": []
+                        }
+                    }
                 },
                 {
-                    "name": "Rigenera API Key",
+                    "name": "Regenerate API Key",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "if (pm.response.code === 200) {",
+                                    "    const response = pm.response.json();",
+                                    "    pm.environment.set('device_api_key', response.api_key);",
+                                    "}"
+                                ]
+                            }
+                        }
+                    ],
                     "request": {
-                        "auth": {
-                            "type": "bearer",
-                            "bearer": [
-                                {
-                                    "key": "token",
-                                    "value": "{{auth_token}}",
-                                    "type": "string"
-                                }
-                            ]
-                        },
                         "method": "POST",
                         "header": [],
                         "url": {
-                            "raw": "{{base_url}}/api/v1/devices/regenerate-api-key?device_id={{device_id}}",
+                            "raw": "{{base_url}}/devices/regenerate-api-key?device_id={{device_id}}",
                             "host": [
                                 "{{base_url}}"
                             ],
                             "path": [
-                                "api",
-                                "v1",
                                 "devices",
                                 "regenerate-api-key"
                             ],
@@ -670,176 +446,142 @@
                                     "value": "{{device_id}}"
                                 }
                             ]
-                        },
-                        "description": "Rigenera l'API key per un dispositivo"
-                    },
-                    "response": []
+                        }
+                    }
                 }
-            ],
-            "description": "Operazioni relative alla gestione dei dispositivi"
+            ]
         },
         {
             "name": "Digital Twins",
             "item": [
                 {
-                    "name": "Lista Digital Twins",
+                    "name": "List Digital Twins",
                     "request": {
-                        "auth": {
-                            "type": "bearer",
-                            "bearer": [
-                                {
-                                    "key": "token",
-                                    "value": "{{auth_token}}",
-                                    "type": "string"
-                                }
-                            ]
-                        },
                         "method": "GET",
                         "header": [],
                         "url": {
-                            "raw": "{{base_url}}/api/v1/digital-twins",
+                            "raw": "{{base_url}}/digital-twins/",
                             "host": [
                                 "{{base_url}}"
                             ],
                             "path": [
-                                "api",
-                                "v1",
-                                "digital-twins"
-                            ],
-                            "query": [
-                                {
-                                    "key": "owner_id",
-                                    "value": "{{user_id}}",
-                                    "description": "Filtra per proprietario (opzionale)",
-                                    "disabled": true
-                                }
+                                "digital-twins",
+                                ""
                             ]
-                        },
-                        "description": "Recupera la lista dei digital twins, opzionalmente filtrati per proprietario"
-                    },
-                    "response": []
+                        }
+                    }
                 },
                 {
-                    "name": "Dettagli Digital Twin",
+                    "name": "Get Digital Twin by ID",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "if (pm.response.code === 200) {",
+                                    "    const response = pm.response.json();",
+                                    "    pm.environment.set('digital_twin_id', response.id);",
+                                    "}"
+                                ]
+                            }
+                        }
+                    ],
                     "request": {
-                        "auth": {
-                            "type": "bearer",
-                            "bearer": [
-                                {
-                                    "key": "token",
-                                    "value": "{{auth_token}}",
-                                    "type": "string"
-                                }
-                            ]
-                        },
                         "method": "GET",
                         "header": [],
                         "url": {
-                            "raw": "{{base_url}}/api/v1/digital-twins/{{digital_twin_id}}",
+                            "raw": "{{base_url}}/digital-twins/{{digital_twin_id}}",
                             "host": [
                                 "{{base_url}}"
                             ],
                             "path": [
-                                "api",
-                                "v1",
                                 "digital-twins",
                                 "{{digital_twin_id}}"
                             ]
-                        },
-                        "description": "Recupera i dettagli di un digital twin specifico"
-                    },
-                    "response": []
+                        }
+                    }
                 },
                 {
-                    "name": "Aggiungi Dati Sensore",
+                    "name": "Add Sensor Data (Device Auth)",
                     "request": {
+                        "auth": {
+                            "type": "noauth"
+                        },
                         "method": "POST",
                         "header": [
                             {
-                                "key": "X-API-Key",
-                                "value": "{{device_api_key}}"
-                            },
-                            {
                                 "key": "Content-Type",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "X-API-Key",
+                                "value": "{{device_api_key}}"
                             }
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n    \"attribute_name\": \"temperature\",\n    \"value\": 22.5,\n    \"timestamp\": \"2023-08-17T14:30:00Z\"\n}"
+                            "raw": "{\n    \"timestamp\": \"{{$isoTimestamp}}\",\n    \"attribute_name\": \"averageHeartRate\",\n    \"value\": 78.5,\n    \"unit_measure\": \"bpm\"\n}"
                         },
                         "url": {
-                            "raw": "{{base_url}}/api/v1/digital-twins/{{digital_twin_id}}/data",
+                            "raw": "{{base_url}}/digital-twins/{{digital_twin_id}}/data",
                             "host": [
                                 "{{base_url}}"
                             ],
                             "path": [
-                                "api",
-                                "v1",
                                 "digital-twins",
                                 "{{digital_twin_id}}",
                                 "data"
                             ]
-                        },
-                        "description": "Aggiungi nuovi dati di un sensore al digital twin (autenticazione dispositivo richiesta)"
-                    },
-                    "response": []
+                        }
+                    }
                 },
                 {
-                    "name": "Genera Dati Casuali",
+                    "name": "Generate Random Data",
                     "request": {
-                        "auth": {
-                            "type": "bearer",
-                            "bearer": [
-                                {
-                                    "key": "token",
-                                    "value": "{{auth_token}}",
-                                    "type": "string"
-                                }
-                            ]
-                        },
                         "method": "POST",
                         "header": [],
                         "url": {
-                            "raw": "{{base_url}}/api/v1/digital-twins/{{digital_twin_id}}/generate-data",
+                            "raw": "{{base_url}}/digital-twins/{{digital_twin_id}}/generate-data",
                             "host": [
                                 "{{base_url}}"
                             ],
                             "path": [
-                                "api",
-                                "v1",
                                 "digital-twins",
                                 "{{digital_twin_id}}",
                                 "generate-data"
                             ]
-                        },
-                        "description": "Genera dati casuali per tutti i sensori compatibili del digital twin"
-                    },
-                    "response": []
+                        }
+                    }
                 },
                 {
-                    "name": "Ottieni Dati Sensori",
+                    "name": "Get Sensor Data",
                     "request": {
-                        "auth": {
-                            "type": "bearer",
-                            "bearer": [
-                                {
-                                    "key": "token",
-                                    "value": "{{auth_token}}",
-                                    "type": "string"
-                                }
-                            ]
-                        },
                         "method": "GET",
                         "header": [],
                         "url": {
-                            "raw": "{{base_url}}/api/v1/digital-twins/{{digital_twin_id}}/data",
+                            "raw": "{{base_url}}/digital-twins/{{digital_twin_id}}/data",
                             "host": [
                                 "{{base_url}}"
                             ],
                             "path": [
-                                "api",
-                                "v1",
+                                "digital-twins",
+                                "{{digital_twin_id}}",
+                                "data"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Get Sensor Data by Type",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/digital-twins/{{digital_twin_id}}/data?sensor_type=averageHeartRate",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
                                 "digital-twins",
                                 "{{digital_twin_id}}",
                                 "data"
@@ -847,39 +589,23 @@
                             "query": [
                                 {
                                     "key": "sensor_type",
-                                    "value": "temperature",
-                                    "description": "Filtra per tipo di sensore (opzionale)",
-                                    "disabled": true
+                                    "value": "averageHeartRate"
                                 }
                             ]
-                        },
-                        "description": "Recupera i dati dei sensori da un digital twin"
-                    },
-                    "response": []
+                        }
+                    }
                 },
                 {
-                    "name": "Verifica Compatibilità Sensore",
+                    "name": "Check Sensor Compatibility",
                     "request": {
-                        "auth": {
-                            "type": "bearer",
-                            "bearer": [
-                                {
-                                    "key": "token",
-                                    "value": "{{auth_token}}",
-                                    "type": "string"
-                                }
-                            ]
-                        },
                         "method": "GET",
                         "header": [],
                         "url": {
-                            "raw": "{{base_url}}/api/v1/digital-twins/{{digital_twin_id}}/compatibility?sensor_type=temperature",
+                            "raw": "{{base_url}}/digital-twins/{{digital_twin_id}}/compatibility?sensor_type=averageHeartRate",
                             "host": [
                                 "{{base_url}}"
                             ],
                             "path": [
-                                "api",
-                                "v1",
                                 "digital-twins",
                                 "{{digital_twin_id}}",
                                 "compatibility"
@@ -887,171 +613,242 @@
                             "query": [
                                 {
                                     "key": "sensor_type",
-                                    "value": "temperature"
+                                    "value": "averageHeartRate"
                                 }
                             ]
-                        },
-                        "description": "Verifica se un tipo di sensore è compatibile con un digital twin"
-                    },
-                    "response": []
+                        }
+                    }
                 }
-            ],
-            "description": "Operazioni relative alla gestione dei digital twins"
+            ]
         },
         {
-            "name": "Ontologia",
+            "name": "Sensors & Ontology",
             "item": [
                 {
-                    "name": "Lista Classi Ontologia",
+                    "name": "Get Sensor Types",
                     "request": {
-                        "auth": {
-                            "type": "bearer",
-                            "bearer": [
-                                {
-                                    "key": "token",
-                                    "value": "{{auth_token}}",
-                                    "type": "string"
-                                }
-                            ]
-                        },
                         "method": "GET",
                         "header": [],
                         "url": {
-                            "raw": "{{base_url}}/api/v1/digital-twins/ontology/classes",
+                            "raw": "{{base_url}}/sensors/types",
                             "host": [
                                 "{{base_url}}"
                             ],
                             "path": [
-                                "api",
-                                "v1",
+                                "sensors",
+                                "types"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Get Sensor Type Details",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/sensors/types/averageHeartRate",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "sensors",
+                                "types",
+                                "averageHeartRate"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Get Sensor Hierarchy",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/sensors/hierarchy",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "sensors",
+                                "hierarchy"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Check Sensor Compatibility",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/sensors/compatibility?device_type=heartRateMonitor",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "sensors",
+                                "compatibility"
+                            ],
+                            "query": [
+                                {
+                                    "key": "device_type",
+                                    "value": "heartRateMonitor"
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Add Sensor Measurement",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"timestamp\": \"{{$isoTimestamp}}\",\n    \"attribute_name\": \"averageHeartRate\",\n    \"value\": 82.3,\n    \"unit_measure\": \"bpm\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/sensors/measurements",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "sensors",
+                                "measurements"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Get Sensor Measurements",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/sensors/measurements?limit=50",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "sensors",
+                                "measurements"
+                            ],
+                            "query": [
+                                {
+                                    "key": "limit",
+                                    "value": "50"
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Get Ontology Classes",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/digital-twins/ontology/classes",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
                                 "digital-twins",
                                 "ontology",
                                 "classes"
                             ]
-                        },
-                        "description": "Recupera tutte le classi definite nell'ontologia"
-                    },
-                    "response": []
+                        }
+                    }
                 },
                 {
-                    "name": "Classi Radice Ontologia",
+                    "name": "Get Ontology Root Classes",
                     "request": {
-                        "auth": {
-                            "type": "bearer",
-                            "bearer": [
-                                {
-                                    "key": "token",
-                                    "value": "{{auth_token}}",
-                                    "type": "string"
-                                }
-                            ]
-                        },
                         "method": "GET",
                         "header": [],
                         "url": {
-                            "raw": "{{base_url}}/api/v1/digital-twins/ontology/root-classes",
+                            "raw": "{{base_url}}/digital-twins/ontology/root-classes",
                             "host": [
                                 "{{base_url}}"
                             ],
                             "path": [
-                                "api",
-                                "v1",
                                 "digital-twins",
                                 "ontology",
                                 "root-classes"
                             ]
-                        },
-                        "description": "Recupera le classi radice dell'ontologia"
-                    },
-                    "response": []
+                        }
+                    }
                 },
                 {
-                    "name": "Dettagli Classe Ontologia",
+                    "name": "Get Ontology Class Details",
                     "request": {
-                        "auth": {
-                            "type": "bearer",
-                            "bearer": [
-                                {
-                                    "key": "token",
-                                    "value": "{{auth_token}}",
-                                    "type": "string"
-                                }
-                            ]
-                        },
                         "method": "GET",
                         "header": [],
                         "url": {
-                            "raw": "{{base_url}}/api/v1/digital-twins/ontology/class/TemperatureSensor",
+                            "raw": "{{base_url}}/digital-twins/ontology/class/heartRateMonitor",
                             "host": [
                                 "{{base_url}}"
                             ],
                             "path": [
-                                "api",
-                                "v1",
                                 "digital-twins",
                                 "ontology",
                                 "class",
-                                "TemperatureSensor"
+                                "heartRateMonitor"
                             ]
-                        },
-                        "description": "Recupera i dettagli di una classe specifica dell'ontologia"
-                    },
-                    "response": []
+                        }
+                    }
                 }
-            ],
-            "description": "Operazioni relative all'ontologia dei sensori"
-        }
-    ],
-    "event": [
-        {
-            "listen": "prerequest",
-            "script": {
-                "type": "text/javascript",
-                "exec": [
-                    ""
-                ]
-            }
+            ]
         },
         {
-            "listen": "test",
-            "script": {
-                "type": "text/javascript",
-                "exec": [
-                    ""
-                ]
-            }
-        }
-    ],
-    "variable": [
-        {
-            "key": "base_url",
-            "value": "http://localhost:8000",
-            "type": "string"
-        },
-        {
-            "key": "auth_token",
-            "value": "",
-            "type": "string"
-        },
-        {
-            "key": "user_id",
-            "value": "",
-            "type": "string"
-        },
-        {
-            "key": "device_id",
-            "value": "",
-            "type": "string"
-        },
-        {
-            "key": "digital_twin_id",
-            "value": "",
-            "type": "string"
-        },
-        {
-            "key": "device_api_key",
-            "value": "",
-            "type": "string"
+            "name": "Health & Testing",
+            "item": [
+                {
+                    "name": "API Root",
+                    "request": {
+                        "auth": {
+                            "type": "noauth"
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/../../",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "..",
+                                "..",
+                                ""
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "OpenAPI Docs",
+                    "request": {
+                        "auth": {
+                            "type": "noauth"
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/docs",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "docs"
+                            ]
+                        }
+                    }
+                }
+            ]
         }
     ]
 }
