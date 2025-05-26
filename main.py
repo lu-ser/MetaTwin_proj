@@ -1,3 +1,20 @@
+import os
+import sys
+from pathlib import Path
+
+# Detect PythonAnywhere environment
+IS_PYTHONANYWHERE = "PYTHONANYWHERE_DOMAIN" in os.environ or "/home/" in str(Path.cwd())
+
+if IS_PYTHONANYWHERE:
+    # Use PythonAnywhere specific config
+    from app.config_pythonanywhere import *
+    ROOT_DIR = Path("/home/lser93/mysite")  # Sostituisci con il tuo username
+else:
+    # Use local config
+    from app.config import settings, ROOT_DIR, DATA_DIR
+
+
+
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -12,50 +29,50 @@ import socket
 from pathlib import Path
 
 # Make sure the data directory exists
-data_dir = Path(DATA_DIR)
-data_dir.mkdir(exist_ok=True)
-
-# Copy the class_hierarchy.json file if it doesn't exist already
-ontology_file = Path(settings.CLASS_HIERARCHY_PATH)
-if not ontology_file.exists():
-    import shutil
-    src_file = ROOT_DIR / "data" / "class_hierarchy.json"
-    if src_file.exists():
-        shutil.copy(src_file, ontology_file)
-    else:
-        print(f"Warning: Could not find source file at {src_file}")
-        print(f"Looking for class_hierarchy.json in: {ROOT_DIR}")
-        # Try to find it in the root directory
-        alt_src_file = ROOT_DIR / "class_hierarchy.json"
-        if alt_src_file.exists():
-            shutil.copy(alt_src_file, ontology_file)
-            print(f"Copied from {alt_src_file} instead")
+if IS_PYTHONANYWHERE:
+    data_dir = Path(DATA_DIR)
+    data_dir.mkdir(exist_ok=True)
+    # Copy the class_hierarchy.json file if it doesn't exist already
+    ontology_file = Path(settings.CLASS_HIERARCHY_PATH)
+    if not ontology_file.exists():
+        import shutil
+        src_file = ROOT_DIR / "data" / "class_hierarchy.json"
+        if src_file.exists():
+            shutil.copy(src_file, ontology_file)
         else:
-            print(f"Error: Could not find class_hierarchy.json in {ROOT_DIR}")
+            print(f"Warning: Could not find source file at {src_file}")
+            print(f"Looking for class_hierarchy.json in: {ROOT_DIR}")
+            # Try to find it in the root directory
+            alt_src_file = ROOT_DIR / "class_hierarchy.json"
+            if alt_src_file.exists():
+                shutil.copy(alt_src_file, ontology_file)
+                print(f"Copied from {alt_src_file} instead")
+            else:
+                print(f"Error: Could not find class_hierarchy.json in {ROOT_DIR}")
 
-app = FastAPI(
-    title=settings.PROJECT_NAME,
-    openapi_url=f"{settings.API_PREFIX}/openapi.json",
-    debug=settings.DEBUG
-)
+    app = FastAPI(
+        title=settings.PROJECT_NAME,
+        openapi_url=f"{settings.API_PREFIX}/openapi.json",
+        debug=settings.DEBUG
+    )
 
-# CORS configuration
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=settings.ALLOW_ORIGINS,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+    # CORS configuration
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=settings.ALLOW_ORIGINS,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
-# Configure StaticFiles to serve static files
-app.mount("/static", StaticFiles(directory=str(ROOT_DIR / "app" / "static")), name="static")
+    # Configure StaticFiles to serve static files
+    app.mount("/static", StaticFiles(directory=str(ROOT_DIR / "app" / "static")), name="static")
 
-# Configure Jinja2 Templates
-templates = Jinja2Templates(directory=str(ROOT_DIR / "app" / "templates"))
+    # Configure Jinja2 Templates
+    templates = Jinja2Templates(directory=str(ROOT_DIR / "app" / "templates"))
 
-# Connect the APIs to the correct route
-app.include_router(router, prefix="/api/v1")
+    # Connect the APIs to the correct route
+    app.include_router(router, prefix="/api/v1")
 
 # Startup and shutdown events
 @app.on_event("startup")
