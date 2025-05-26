@@ -4,10 +4,11 @@ from typing import Dict, List, Optional, Any, Union
 import json
 import os
 from pathlib import Path
-from app.config import settings
+from app.config import settings, ROOT_DIR
 
-# Use Path to ensure cross-platform compatibility
-hierarchy_path = Path(settings.CLASS_HIERARCHY_PATH)
+# Use an absolute path constructed from ROOT_DIR
+hierarchy_path = ROOT_DIR / "data" / "class_hierarchy.json"
+print(f"Loading class hierarchy from: {hierarchy_path}")
 with open(hierarchy_path, "r") as f:
     CLASS_HIERARCHY = json.load(f)
 
