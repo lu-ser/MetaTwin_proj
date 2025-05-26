@@ -1,0 +1,196 @@
+{% extends "base.html" %}
+
+{% block head %}
+<title>Templates - {{ title }}</title>
+{% endblock %}
+
+{% block content %}
+<h1 class="mb-4">Template Management</h1>
+
+<div class="alert alert-info">
+    <h4 class="alert-heading">Device Templates</h4>
+    <p>Templates allow you to create custom devices outside the predefined ontology.</p>
+    <p>With templates you can:</p>
+    <ul>
+        <li>Define custom data structures for your devices</li>
+        <li>Specify attributes with different types (numbers, text, booleans, etc.)</li>
+        <li>Set constraints and validation for attribute values</li>
+        <li>Create digital twins based on your custom templates</li>
+    </ul>
+</div>
+
+<div class="d-flex justify-content-between mb-4">
+    <h2>Your Templates</h2>
+    <div>
+        <a href="/api/v1/manage/template/new" class="btn btn-primary me-2">
+            <i class="bi bi-plus-circle"></i> New Template
+        </a>
+        <div class="btn-group">
+            <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="createFromOntology"
+                data-bs-toggle="dropdown" aria-expanded="false">
+                Create from Ontology
+            </button>
+            <ul class="dropdown-menu" aria-labelledby="createFromOntology" id="ontologyTypesList">
+                <li><a class="dropdown-item" href="#" data-loading="true">Loading types...</a></li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table" id="templateTable">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Description</th>
+                        <th>Attributes</th>
+                        <th>Type</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td colspan="5" class="text-center">Loading templates...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', async function () {
+        try {
+            // Load templates
+            const templates = await apiRequest('/templates');
+            renderTemplatesTable(templates);
+
+            // Load ontology types for dropdown
+            const sensorTypes = await apiRequest('/sensors/types');
+            const ontologyTypesList = document.getElementById('ontologyTypesList');
+            ontologyTypesList.innerHTML = '';
+
+            sensorTypes.forEach(type => {
+                const li = document.createElement('li');
+                const a = document.createElement('a');
+                a.className = 'dropdown-item';
+                a.href = `/api/v1/manage/template/new?source_type=${encodeURIComponent(type)}`;
+                a.textContent = type;
+                li.appendChild(a);
+                ontologyTypesList.appendChild(li);
+            });
+
+            if (sensorTypes.length === 0) {
+                const li = document.createElement('li');
+                const a = document.createElement('a');
+                a.className = 'dropdown-item disabled';
+                a.href = '#';
+                a.textContent = 'No types available';
+                li.appendChild(a);
+                ontologyTypesList.appendChild(li);
+            }
+        } catch (error) {
+            console.error('Error loading data:', error);
+            document.querySelector('#templateTable tbody').innerHTML =
+                '<tr><td colspan="5" class="text-center text-danger">Error loading templates</td></tr>';
+        }
+    });
+
+    function renderTemplatesTable(templates) {
+        const tableBody = document.querySelector('#templateTable tbody');
+
+        if (templates.length === 0) {
+            tableBody.innerHTML = '<tr><td colspan="5" class="text-center">No templates available</td></tr>';
+            return;
+        }
+
+        tableBody.innerHTML = '';
+        templates.forEach(template => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+            <td>${escapeHtml(template.name)}</td>
+            <td>${escapeHtml(template.description || '')}</td>
+            <td>${Object.keys(template.attributes || {}).length}</td>
+            <td>${template.is_ontology_based ? '<span class="badge bg-info">Ontology</span>' : '<span class="badge bg-success">Custom</span>'}</td>
+            <td>
+                <div class="btn-group btn-group-sm">
+                    <a href="/api/v1/manage/template/${template.id}" class="btn btn-outline-primary">Edit</a>
+                    <button class="btn btn-outline-danger" onclick="deleteTemplate('${template.id}')">Delete</button>
+                </div>
+            </td>
+        `;
+            tableBody.appendChild(tr);
+        });
+    }
+
+    async function deleteTemplate(templateId) {
+        if (!confirm('Are you sure you want to delete this template? This action cannot be undone and may affect devices using it.')) {
+            return;
+        }
+
+        try {
+            await apiRequest(`/templates/${templateId}`, 'DELETE');
+
+            // Show success message
+            showSuccess('Template deleted successfully');
+
+            // Reload templates
+            const templates = await apiRequest('/templates');
+            renderTemplatesTable(templates);
+        } catch (error) {
+            console.error('Error deleting template:', error);
+            showError(`Error: ${error.message || 'Unable to delete template'}`);
+        }
+    }
+
+    function escapeHtml(unsafe) {
+        if (!unsafe) return '';
+        return unsafe
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+
+    function showSuccess(message) {
+        // Create a bootstrap alert
+        const alertDiv = document.createElement('div');
+        alertDiv.className = 'alert alert-success alert-dismissible fade show position-fixed top-0 end-0 m-3';
+        alertDiv.setAttribute('role', 'alert');
+        alertDiv.style.zIndex = '9999';
+        alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    `;
+
+        document.body.appendChild(alertDiv);
+
+        setTimeout(() => {
+            alertDiv.remove();
+        }, 3000);
+    }
+
+    function showError(message) {
+        // Create a bootstrap alert
+        const alertDiv = document.createElement('div');
+        alertDiv.className = 'alert alert-danger alert-dismissible fade show position-fixed top-0 end-0 m-3';
+        alertDiv.setAttribute('role', 'alert');
+        alertDiv.style.zIndex = '9999';
+        alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    `;
+
+        document.body.appendChild(alertDiv);
+
+        setTimeout(() => {
+            alertDiv.remove();
+        }, 5000);
+    }
+</script>
+{% endblock %}

@@ -5,7 +5,7 @@ from app.models.device_template import DeviceTemplate, AttributeDefinition, Attr
 from app.db.crud import create_document, get_document, update_document, delete_document, list_documents
 from app.api.auth_service import get_current_active_user
 from app.ontology.manager import OntologyManager
-
+import datetime
 router = APIRouter()
 
 @router.post("/", response_model=DeviceTemplate, status_code=201)
@@ -36,6 +36,16 @@ async def create_device_template(
     saved_template = await get_document("device_templates", template.id)
     return saved_template
 
+@router.get("/debug", response_model=Dict[str, Any])
+async def debug_templates():
+    """Endpoint di debug per verificare che il router funzioni"""
+    return {
+        "status": "ok", 
+        "message": "Templates router is working",
+        "timestamp": str(datetime.datetime.now())
+    }
+
+# Modifica temporaneamente l'endpoint list (rimuovi il parametro current_user)
 @router.get("/", response_model=List[DeviceTemplate])
 async def list_device_templates(
     owner_id: Optional[str] = None,

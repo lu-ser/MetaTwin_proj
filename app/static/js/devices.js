@@ -1,4 +1,4 @@
-// devices.js - Script aggiornato per la pagina dei dispositivi
+// devices.js - Script per la pagina dei dispositivi (versione corretta)
 
 document.addEventListener('DOMContentLoaded', function () {
     // Elementi DOM
@@ -14,19 +14,18 @@ document.addEventListener('DOMContentLoaded', function () {
     const ownerIdInput = document.getElementById('owner-id-input');
 
     // Attributi correnti del dispositivo
-    const currentAttributes = {};
+    window.currentAttributes = {};
 
     // Carica liste iniziali
     loadDevicesList();
     loadDeviceTypes();
-    loadUsersList(); // Nuovo: carica lista utenti
+    loadUsersList();
 
     // Event listeners
     refreshDevicesBtn.addEventListener('click', loadDevicesList);
     deviceTypeDropdown.addEventListener('change', onDeviceTypeChange);
     attrNameDropdown.addEventListener('change', onAttrNameChange);
     addAttrBtn.addEventListener('click', addAttribute);
-    createDeviceForm.addEventListener('submit', createDevice);
 
     // Funzione per caricare la lista dei dispositivi
     async function loadDevicesList() {
@@ -49,7 +48,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 listItem.innerHTML = `
                     <div class="d-flex w-100 justify-content-between">
                         <h5 class="mb-1">${device.name}</h5>
-                        <small>${device.device_type}</small>
+                        <small>${device.device_type || device.template_id || 'Generic'}</small>
                     </div>
                     <p class="mb-1">ID: ${device.id}</p>
                     ${device.owner_id ? `<small>Proprietario: ${device.owner_id}</small><br>` : ''}
@@ -66,6 +65,7 @@ document.addEventListener('DOMContentLoaded', function () {
             });
         } catch (error) {
             console.error('Errore nel caricamento dei dispositivi:', error);
+            showError('Errore nel caricamento dei dispositivi: ' + error.message);
         }
     }
 
@@ -86,7 +86,6 @@ document.addEventListener('DOMContentLoaded', function () {
             if (ownerIdInput) {
                 const updatedUsers = await apiRequest('/users/');
                 if (updatedUsers.length > 0) {
-                    // Solo per il suggerimento, non è necessario popolare una dropdown completa
                     ownerIdInput.placeholder = `Es: ${updatedUsers[0].id}`;
                 }
             }
@@ -257,58 +256,6 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // Funzione per creare un nuovo dispositivo
-    async function createDevice(e) {
-        e.preventDefault();
-
-        const deviceName = document.getElementById('device-name-input').value.trim();
-        const deviceType = deviceTypeDropdown.value;
-        const ownerId = ownerIdInput ? ownerIdInput.value.trim() : null;
-
-        if (!deviceName) {
-            showError('Inserisci un nome per il dispositivo');
-            return;
-        }
-
-        if (!deviceType) {
-            showError('Seleziona un tipo di dispositivo');
-            return;
-        }
-
-        // Prepara i dati del dispositivo
-        const deviceData = {
-            name: deviceName,
-            device_type: deviceType,
-            attributes: currentAttributes
-        };
-
-        // Aggiungi owner_id se specificato
-        if (ownerId) {
-            deviceData.owner_id = ownerId;
-        }
-
-        try {
-            // Crea il dispositivo
-            const newDevice = await apiRequest('/devices/', 'POST', deviceData);
-
-            // Mostra messaggio di successo
-            showSuccess('Dispositivo creato con successo!');
-
-            // Aggiorna la lista dei dispositivi
-            loadDevicesList();
-
-            // Resetta il form
-            createDeviceForm.reset();
-            attributesList.innerHTML = '';
-            Object.keys(currentAttributes).forEach(key => delete currentAttributes[key]);
-
-            // Mostra i dettagli del nuovo dispositivo
-            showDeviceDetails(newDevice.id);
-        } catch (error) {
-            console.error('Errore nella creazione del dispositivo:', error);
-        }
-    }
-
     // Funzione per rigenerare API key
     async function regenerateApiKey(deviceId) {
         try {
@@ -334,13 +281,8 @@ document.addEventListener('DOMContentLoaded', function () {
             // Prepara il contenuto del modal
             const modalContent = document.getElementById('device-details-content');
 
-            // Formatta l'API key per la visualizzazione (mostra solo parte iniziale)
-            const apiKeyDisplay = device.api_key
-                ? `${device.api_key.substring(0, 10)}...`
-                : 'Nessuna API key generata';
-
             let attributesHtml = '<p>Nessun attributo definito.</p>';
-            if (Object.keys(device.attributes).length > 0) {
+            if (device.attributes && Object.keys(device.attributes).length > 0) {
                 attributesHtml = '<ul class="list-group">';
 
                 for (const [attrName, attr] of Object.entries(device.attributes)) {
@@ -411,7 +353,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 <div class="container-fluid">
                     <h3>${device.name}</h3>
                     <p><strong>ID:</strong> ${device.id}</p>
-                    <p><strong>Tipo:</strong> ${device.device_type}</p>
+                    <p><strong>Tipo:</strong> ${device.device_type || device.template_id || 'Generic'}</p>
                     <p>
                         <strong>Proprietario:</strong> 
                         ${device.owner_id ? device.owner_id : 'Nessun proprietario'}
@@ -479,6 +421,7 @@ document.addEventListener('DOMContentLoaded', function () {
             });
         } catch (error) {
             console.error('Errore nel caricamento dei dettagli del dispositivo:', error);
+            showError('Errore nel caricamento dei dettagli del dispositivo: ' + error.message);
         }
     }
 
@@ -499,4 +442,26 @@ document.addEventListener('DOMContentLoaded', function () {
             alertDiv.remove();
         }, 5000);
     }
+
+    // Funzione per mostrare messaggi di errore
+    function showError(message) {
+        const alertDiv = document.createElement('div');
+        alertDiv.className = 'alert alert-danger alert-dismissible fade show';
+        alertDiv.setAttribute('role', 'alert');
+        alertDiv.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        `;
+
+        const container = document.querySelector('.container');
+        container.insertBefore(alertDiv, container.firstChild);
+
+        setTimeout(() => {
+            alertDiv.remove();
+        }, 5000);
+    }
+
+    // Esponi le funzioni globalmente per uso da devices.html
+    window.loadDevicesList = loadDevicesList;
+    window.showDeviceDetails = showDeviceDetails;
 });

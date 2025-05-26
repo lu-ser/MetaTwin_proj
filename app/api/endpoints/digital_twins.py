@@ -222,3 +222,87 @@ async def get_ontology_class_details(class_name: str):
         "superclasses": superclasses,
         "subclasses": subclasses
     }
+
+@router.post("/", response_model=DigitalTwin, status_code=201)
+async def create_digital_twin(
+    digital_twin_data: Dict[str, Any] = Body(...),
+    current_user: Dict[str, Any] = Depends(get_current_active_user)
+):
+    """Crea un nuovo digital twin direttamente"""
+    
+    # Se l'owner_id non è specificato, imposta l'utente corrente come proprietario
+    if "owner_id" not in digital_twin_data:
+        digital_twin_data["owner_id"] = current_user["id"]
+    
+    # Verifica che l'utente corrente possa creare un digital twin per il proprietario specificato
+    if digital_twin_data["owner_id"] != current_user["id"]:
+        raise HTTPException(
+            status_code=403, 
+            detail="Non hai i permessi per creare digital twin per altri utenti"
+        )
+    
+    # Se viene specificato un device_type, verifica che esista nell'ontologia
+    if "device_type" in digital_twin_data and digital_twin_data["device_type"]:
+        ontology = OntologyManager()
+        if digital_twin_data["device_type"] not in ontology.get_all_sensor_types():
+            raise HTTPException(
+                status_code=400,
+                detail=f"Device type '{digital_twin_data['device_type']}' non trovato nell'ontologia"
+            )
+    
+    # Se viene specificato un template_id, verifica che esista
+    if "template_id" in digital_twin_data and digital_twin_data["template_id"]:
+        template = await get_document("device_templates", digital_twin_data["template_id"])
+        if not template:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Template con ID '{digital_twin_data['template_id']}' non trovato"
+            )
+    
+    # Crea prima un dispositivo se non esiste
+    device_data = {
+        "name": digital_twin_data.get("name", "Device") + "_Device",
+        "owner_id": digital_twin_data["owner_id"],
+        "attributes": {}
+    }
+    
+    # Imposta device_type o template_id nel dispositivo
+    if "device_type" in digital_twin_data:
+        device_data["device_type"] = digital_twin_data["device_type"]
+    if "template_id" in digital_twin_data:
+        device_data["template_id"] = digital_twin_data["template_id"]
+    
+    # Crea il dispositivo
+    device_id = await create_document("devices", device_data)
+    device = await get_document("devices", device_id)
+    
+    # Crea il digital twin tramite il servizio
+    digital_twin = await create_digital_twin_for_device(device)
+    
+    # Aggiorna il nome se specificato
+    if "name" in digital_twin_data and digital_twin_data["name"] != digital_twin.name:
+        await update_document("digital_twins", digital_twin.id, {
+            "name": digital_twin_data["name"]
+        })
+        digital_twin.name = digital_twin_data["name"]
+    
+    # Aggiorna l'utente con il nuovo digital twin
+    if digital_twin_data["owner_id"]:
+        user = await get_document("users", digital_twin_data["owner_id"])
+        if user:
+            # Aggiungi il dispositivo
+            user_devices = user.get("devices", [])
+            if device_id not in user_devices:
+                user_devices.append(device_id)
+            
+            # Aggiungi il digital twin
+            user_digital_twins = user.get("digital_twins", [])
+            if digital_twin.id not in user_digital_twins:
+                user_digital_twins.append(digital_twin.id)
+            
+            await update_document("users", digital_twin_data["owner_id"], {
+                "devices": user_devices,
+                "digital_twins": user_digital_twins
+            })
+    
+    return digital_twin

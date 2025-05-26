@@ -62,8 +62,9 @@
 </div>
 
 <!-- Create Digital Twin Modal -->
+<!-- Create Digital Twin Modal -->
 <div class="modal fade" id="createDtModal" tabindex="-1">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">Create Digital Twin</h5>
@@ -79,6 +80,49 @@
                     <div class="mb-3">
                         <label class="form-label">Description</label>
                         <textarea class="form-control" id="createDtDescription" rows="3"></textarea>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Creation Method</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="dtCreationType" id="dtTypeOntology"
+                                value="ontology" checked>
+                            <label class="form-check-label" for="dtTypeOntology">
+                                Based on Ontology (sensor types)
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="dtCreationType" id="dtTypeTemplate"
+                                value="template">
+                            <label class="form-check-label" for="dtTypeTemplate">
+                                Based on Template (custom structure)
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="dtCreationType" id="dtTypeCustom"
+                                value="custom">
+                            <label class="form-check-label" for="dtTypeCustom">
+                                Generic (no predefined structure)
+                            </label>
+                        </div>
+                    </div>
+
+                    <div id="ontologyOptions" class="mb-3">
+                        <label for="dtDeviceType" class="form-label">Device Type</label>
+                        <select class="form-select" id="dtDeviceType">
+                            <option value="">Select device type...</option>
+                        </select>
+                    </div>
+
+                    <div id="templateOptions" class="mb-3" style="display: none;">
+                        <label for="dtTemplate" class="form-label">Template</label>
+                        <select class="form-select" id="dtTemplate">
+                            <option value="">Select template...</option>
+                        </select>
+                        <div class="form-text">
+                            <a href="/api/v1/manage/templates" target="_blank">Manage templates</a> or
+                            <a href="/api/v1/manage/template/new" target="_blank">create a new one</a>
+                        </div>
                     </div>
                 </form>
             </div>
@@ -101,12 +145,15 @@
     function showCreateDtModal() {
         const modal = new bootstrap.Modal(document.getElementById('createDtModal'));
         modal.show();
+        loadDeviceTypes();
+        loadTemplates();
     }
 
     // Create new digital twin
     async function createDigitalTwin() {
         const name = document.getElementById('createDtName').value;
         const description = document.getElementById('createDtDescription').value;
+        const creationType = document.querySelector('input[name="dtCreationType"]:checked').value;
         const errorElement = document.getElementById('createDtError');
 
         if (!name) {
@@ -116,10 +163,37 @@
         }
 
         try {
-            await apiRequest('/digital_twins', 'POST', {
-                name,
-                description
-            });
+            let deviceData = {
+                name: name + '_Device',
+                attributes: {}
+            };
+
+            if (creationType === 'ontology') {
+                const deviceType = document.getElementById('dtDeviceType').value;
+                if (!deviceType) {
+                    errorElement.textContent = 'Please select a device type';
+                    errorElement.style.display = 'block';
+                    return;
+                }
+                deviceData.device_type = deviceType;
+            } else if (creationType === 'template') {
+                const templateId = document.getElementById('dtTemplate').value;
+                if (!templateId) {
+                    errorElement.textContent = 'Please select a template';
+                    errorElement.style.display = 'block';
+                    return;
+                }
+                deviceData.template_id = templateId;
+            } else {
+                // Custom/generic digital twin - no specific device type or template
+                deviceData.device_type = 'generic';
+            }
+
+            // First create the device
+            const device = await apiRequest('/devices', 'POST', deviceData);
+
+            // The device creation should automatically create a digital twin
+            // So we just need to reload the list
 
             // Close modal and reset form
             const modal = bootstrap.Modal.getInstance(document.getElementById('createDtModal'));
@@ -136,5 +210,59 @@
             errorElement.style.display = 'block';
         }
     }
+
+    // Load device types for digital twin creation
+    async function loadDeviceTypes() {
+        try {
+            const deviceTypes = await apiRequest('/sensors/types');
+            const select = document.getElementById('dtDeviceType');
+            select.innerHTML = '<option value="">Select device type...</option>';
+
+            deviceTypes.forEach(type => {
+                const option = document.createElement('option');
+                option.value = type;
+                option.textContent = type;
+                select.appendChild(option);
+            });
+        } catch (error) {
+            console.error('Error loading device types:', error);
+        }
+    }
+
+    // Load templates for digital twin creation
+    async function loadTemplates() {
+        try {
+            const templates = await apiRequest('/templates');
+            const select = document.getElementById('dtTemplate');
+            select.innerHTML = '<option value="">Select template...</option>';
+
+            templates.forEach(template => {
+                const option = document.createElement('option');
+                option.value = template.id;
+                option.textContent = template.name;
+                select.appendChild(option);
+            });
+        } catch (error) {
+            console.error('Error loading templates:', error);
+        }
+    }
+
+    document.querySelectorAll('input[name="dtCreationType"]').forEach(radio => {
+        radio.addEventListener('change', function () {
+            const ontologyOptions = document.getElementById('ontologyOptions');
+            const templateOptions = document.getElementById('templateOptions');
+
+            if (this.value === 'ontology') {
+                ontologyOptions.style.display = 'block';
+                templateOptions.style.display = 'none';
+            } else if (this.value === 'template') {
+                ontologyOptions.style.display = 'none';
+                templateOptions.style.display = 'block';
+            } else {
+                ontologyOptions.style.display = 'none';
+                templateOptions.style.display = 'none';
+            }
+        });
+    });
 </script>
 {% endblock %}

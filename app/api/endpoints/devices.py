@@ -1,18 +1,27 @@
 # app/api/endpoints/devices.py
 from fastapi import APIRouter, HTTPException, Body, Depends, Header, Query, Path
 from typing import List, Optional, Dict, Any, Union
-from app.models.device import Device
+from app.models.device import Device, SensorAttribute
 from app.db.crud import create_document, get_document, update_document, delete_document, list_documents
 from app.services.digital_twin_service import create_digital_twin_for_device
 from app.api.auth import get_device_by_api_key, verify_device_ownership
 from app.api.auth_service import get_current_active_user
 import secrets
-
 router = APIRouter()
-
+@router.post("/debug", status_code=200)
+async def debug_create_device(
+    data: Dict[str, Any] = Body(...),
+    current_user: Dict[str, Any] = Depends(get_current_active_user)
+):
+    """Endpoint di debug per testare POST"""
+    return {
+        "status": "success",
+        "received_data": data,
+        "user": current_user["id"]
+    }
 @router.post("/", response_model=Device, status_code=201)
 async def create_device(
-    device: Device, 
+    device_data: Dict[str, Any] = Body(...),  # Cambiato da Device a Dict
     regenerate_api_key: bool = Query(False),
     current_user: Dict[str, Any] = Depends(get_current_active_user)
 ):
@@ -22,11 +31,11 @@ async def create_device(
     Il dispositivo può essere basato sull'ontologia (device_type) o su un template (template_id)
     """
     # Se l'owner_id non è specificato, imposta l'utente corrente come proprietario
-    if not device.owner_id:
-        device.owner_id = current_user["id"]
+    if "owner_id" not in device_data or not device_data["owner_id"]:
+        device_data["owner_id"] = current_user["id"]
     
     # Verifica che l'utente corrente possa creare un dispositivo per il proprietario specificato
-    if device.owner_id != current_user["id"]:
+    if device_data["owner_id"] != current_user["id"]:
         # Qui potresti implementare controlli di ruolo più avanzati (es. admin)
         raise HTTPException(
             status_code=403, 
@@ -34,24 +43,72 @@ async def create_device(
         )
     
     # Verifica che il device abbia o device_type o template_id
-    if not device.device_type and not device.template_id:
+    device_type = device_data.get("device_type")
+    template_id = device_data.get("template_id")
+    
+    if not device_type and not template_id:
         raise HTTPException(
             status_code=400,
             detail="È necessario specificare almeno uno tra device_type (ontologia) e template_id (template personalizzato)"
         )
     
-    # Se viene fornito template_id, verifica che esista
-    if device.template_id:
-        template = await get_document("device_templates", device.template_id)
+    # Validazione dell'ontologia se device_type è presente
+    if device_type:
+        try:
+            ontology = OntologyManager()
+            if device_type not in ontology.get_all_sensor_types():
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Device type '{device_type}' non trovato nell'ontologia"
+                )
+        except Exception as e:
+            print(f"Warning: Ontology validation failed: {e}")
+    
+    # Validazione del template se template_id è presente
+    if template_id:
+        template = await get_document("device_templates", template_id)
         if not template:
             raise HTTPException(
                 status_code=404,
-                detail=f"Template con ID '{device.template_id}' non trovato"
+                detail=f"Template con ID '{template_id}' non trovato"
             )
     
-    # Se è richiesto di rigenerare API key o non è presente
-    if regenerate_api_key or not device.api_key:
-        device.api_key = secrets.token_urlsafe(32)
+    # Converti gli attributi nel formato corretto
+    processed_attributes = {}
+    if "attributes" in device_data and device_data["attributes"]:
+        for attr_name, attr_data in device_data["attributes"].items():
+            if isinstance(attr_data, dict):
+                processed_attributes[attr_name] = SensorAttribute(
+                    value=attr_data.get("value", 0),
+                    unit_measure=attr_data.get("unit_measure", "")
+                )
+            else:
+                # Fallback per dati in formato diverso
+                processed_attributes[attr_name] = SensorAttribute(
+                    value=attr_data,
+                    unit_measure=""
+                )
+    
+    # Crea l'oggetto Device
+    try:
+        device = Device(
+            name=device_data["name"],
+            device_type=device_type,
+            template_id=template_id,
+            attributes=processed_attributes,
+            owner_id=device_data["owner_id"],
+            metadata=device_data.get("metadata", {})
+        )
+        
+        # Se è richiesto di rigenerare API key o non è presente
+        if regenerate_api_key or not device.api_key:
+            device.api_key = secrets.token_urlsafe(32)
+            
+    except Exception as e:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Errore nella creazione del dispositivo: {str(e)}"
+        )
     
     # Salva il dispositivo nel database
     device_dict = device.dict()
@@ -61,26 +118,35 @@ async def create_device(
     saved_device = await get_document("devices", device.id)
     
     # Crea un digital twin per questo dispositivo
-    digital_twin = await create_digital_twin_for_device(saved_device)
-    
-    # Aggiorna il dispositivo con l'ID del digital twin
-    await update_document("devices", device.id, {"digital_twin_id": digital_twin.id})
+    try:
+        digital_twin = await create_digital_twin_for_device(saved_device)
+        
+        # Aggiorna il dispositivo con l'ID del digital twin
+        await update_document("devices", device.id, {"digital_twin_id": digital_twin.id})
+    except Exception as e:
+        print(f"Warning: Could not create digital twin: {e}")
+        # Non bloccare la creazione del dispositivo se il digital twin fallisce
     
     # Se è specificato un proprietario, aggiorna anche l'utente
     if device.owner_id:
-        user = await get_document("users", device.owner_id)
-        if user:
-            # Aggiungi l'ID del dispositivo alla lista dei dispositivi dell'utente
-            user_devices = user.get("devices", [])
-            if device.id not in user_devices:
-                user_devices.append(device.id)
-                await update_document("users", device.owner_id, {"devices": user_devices})
-                
-            # Aggiungi anche il digital twin
-            user_digital_twins = user.get("digital_twins", [])
-            if digital_twin.id not in user_digital_twins:
-                user_digital_twins.append(digital_twin.id)
-                await update_document("users", device.owner_id, {"digital_twins": user_digital_twins})
+        try:
+            user = await get_document("users", device.owner_id)
+            if user:
+                # Aggiungi l'ID del dispositivo alla lista dei dispositivi dell'utente
+                user_devices = user.get("devices", [])
+                if device.id not in user_devices:
+                    user_devices.append(device.id)
+                    
+                user_digital_twins = user.get("digital_twins", [])
+                if hasattr(digital_twin, 'id') and digital_twin.id not in user_digital_twins:
+                    user_digital_twins.append(digital_twin.id)
+                    
+                await update_document("users", device.owner_id, {
+                    "devices": user_devices,
+                    "digital_twins": user_digital_twins
+                })
+        except Exception as e:
+            print(f"Warning: Could not update user: {e}")
     
     # Recupera il dispositivo aggiornato
     updated_device = await get_document("devices", device.id)
@@ -320,6 +386,8 @@ async def regenerate_api_key(
     
     return {"api_key": new_api_key}
 
+
+
 @router.post("/data", status_code=200)
 async def send_device_data(
     data: Dict[str, Any] = Body(...),
@@ -330,7 +398,7 @@ async def send_device_data(
     
     Supporta sia dispositivi basati su ontologia che template
     """
-    from app.models.sensor import SensorMeasurement
+    from app.services.digital_twin_service import add_sensor_data_to_digital_twin
     import datetime
     from app.models.device_template import DeviceTemplate
     
@@ -364,39 +432,46 @@ async def send_device_data(
         for attr_name, value in data.items():
             # Verifica che l'attributo sia compatibile col tipo di dispositivo
             if ontology.is_sensor_compatible(device["device_type"], attr_name):
+                unit_measure = ""
+                sensor_details = ontology.get_sensor_details(attr_name)
+                if sensor_details and "unitMeasure" in sensor_details:
+                    unit_measures = sensor_details["unitMeasure"]
+                    if isinstance(unit_measures, list) and len(unit_measures) > 0:
+                        unit_measure = unit_measures[0]
+                
                 valid_data[attr_name] = {
                     "value": value,
-                    "unit_measure": ontology.get_sensor_details(attr_name).get("unit_measure", "")
+                    "unit_measure": unit_measure
                 }
     
     # Aggiorna gli attributi nel dispositivo
     if valid_data:
         await update_document("devices", device["id"], {"attributes": valid_data})
         
-        # Aggiorna anche il digital twin
+        #CORREZIONE: Usa il servizio dedicato per aggiornare il digital twin
         if device.get("digital_twin_id"):
-            digital_twin = await get_document("digital_twins", device["digital_twin_id"])
-            if digital_twin:
-                twin_state = digital_twin.get("state", {})
+            updated_sensors = []
+            
+            for attr_name, attr_data in valid_data.items():
+                success = await add_sensor_data_to_digital_twin(
+                    device["digital_twin_id"],
+                    attr_name,
+                    attr_data["value"],
+                    now,
+                    attr_data["unit_measure"]
+                )
                 
-                # Aggiorna lo stato con i nuovi valori
-                for attr_name, attr_data in valid_data.items():
-                    if attr_name not in twin_state:
-                        twin_state[attr_name] = []
-                    
-                    # Aggiungi la nuova misurazione
-                    twin_state[attr_name].append({
-                        "timestamp": now,
-                        "value": attr_data["value"],
-                        "unit_measure": attr_data["unit_measure"]
-                    })
-                    
-                    # Mantieni solo le ultime 100 misurazioni
-                    if len(twin_state[attr_name]) > 100:
-                        twin_state[attr_name] = twin_state[attr_name][-100:]
-                
-                await update_document("digital_twins", device["digital_twin_id"], {"state": twin_state})
+                if success:
+                    updated_sensors.append(attr_name)
+            
+            return {
+                "status": "success", 
+                "updated_attributes": list(valid_data.keys()),
+                "digital_twin_updated": len(updated_sensors) > 0,
+                "updated_sensors": updated_sensors
+            }
         
         return {"status": "success", "updated_attributes": list(valid_data.keys())}
     else:
         return {"status": "warning", "message": "Nessun attributo valido fornito"}
+

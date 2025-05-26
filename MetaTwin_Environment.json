@@ -1,69 +1,97 @@
 {
-    "id": "421e9f1a-3e54-4d10-8b37-9a4982331a8f",
-    "name": "MetaTwin Environment",
+    "id": "digital-twin-environment",
+    "name": "Digital Twin Platform - Local",
     "values": [
         {
             "key": "base_url",
-            "value": "http://localhost:8000/api",
-            "type": "default",
+            "value": "http://127.0.0.1:8000/api/v1",
+            "description": "Base URL for the API",
             "enabled": true
         },
         {
-            "key": "access_token",
-            "value": "",
-            "type": "secret",
+            "key": "test_user_name",
+            "value": "Test User",
+            "description": "Test user full name",
             "enabled": true
         },
         {
-            "key": "refresh_token",
+            "key": "test_user_email",
+            "value": "test@example.com",
+            "description": "Test user email for authentication",
+            "enabled": true
+        },
+        {
+            "key": "test_user_password",
+            "value": "testpassword123",
+            "description": "Test user password",
+            "enabled": true
+        },
+        {
+            "key": "auth_token",
             "value": "",
-            "type": "secret",
+            "description": "JWT authentication token (auto-populated by login request)",
             "enabled": true
         },
         {
             "key": "user_id",
             "value": "",
-            "type": "default",
+            "description": "Current user ID (auto-populated by register/login)",
+            "enabled": true
+        },
+        {
+            "key": "created_user_id",
+            "value": "",
+            "description": "ID of newly created user (auto-populated)",
             "enabled": true
         },
         {
             "key": "device_id",
             "value": "",
-            "type": "default",
+            "description": "Device ID (auto-populated by device creation)",
             "enabled": true
         },
         {
-            "key": "template_id",
+            "key": "template_device_id",
             "value": "",
-            "type": "default",
-            "enabled": true
-        },
-        {
-            "key": "twin_id",
-            "value": "",
-            "type": "default",
+            "description": "Template-based device ID (auto-populated)",
             "enabled": true
         },
         {
             "key": "device_api_key",
             "value": "",
-            "type": "secret",
+            "description": "Device API key for authentication (auto-populated)",
             "enabled": true
         },
         {
-            "key": "sensor_type",
-            "value": "Temperature",
-            "type": "default",
+            "key": "template_device_api_key",
+            "value": "",
+            "description": "Template device API key (auto-populated)",
             "enabled": true
         },
         {
-            "key": "device_type",
-            "value": "Weather Station",
-            "type": "default",
+            "key": "digital_twin_id",
+            "value": "",
+            "description": "Digital Twin ID (auto-populated by device creation)",
+            "enabled": true
+        },
+        {
+            "key": "direct_dt_id",
+            "value": "",
+            "description": "Direct Digital Twin ID (auto-populated)",
+            "enabled": true
+        },
+        {
+            "key": "template_id",
+            "value": "",
+            "description": "Template ID (auto-populated by template creation)",
+            "enabled": true
+        },
+        {
+            "key": "ontology_template_id",
+            "value": "",
+            "description": "Ontology-based template ID (auto-populated)",
             "enabled": true
         }
     ],
-    "_postman_variable_scope": "environment",
-    "_postman_exported_at": "2023-07-20T12:00:00.000Z",
-    "_postman_exported_using": "Postman/10.15.1"
+    "_postman_variable_scope": "environment"
 }

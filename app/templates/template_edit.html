@@ -1,0 +1,528 @@
+{% extends "base.html" %}
+
+{% block head %}
+<title>{% if is_new %}New Template{% else %}Edit Template{% endif %} - {{ title }}</title>
+<style>
+    .attribute-row {
+        border: 1px solid #dee2e6;
+        border-radius: 0.375rem;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        background-color: #f8f9fa;
+    }
+
+    .constraint-group {
+        margin-top: 0.5rem;
+        padding: 0.5rem;
+        background-color: #e9ecef;
+        border-radius: 0.25rem;
+    }
+
+    .remove-btn {
+        position: absolute;
+        top: 0.5rem;
+        right: 0.5rem;
+    }
+
+    .attribute-container {
+        position: relative;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="/api/v1/">Home</a></li>
+            <li class="breadcrumb-item"><a href="/api/v1/manage/templates">Templates</a></li>
+            <li class="breadcrumb-item active">{% if is_new %}New Template{% else %}Edit Template{% endif %}</li>
+        </ol>
+    </nav>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h2>{% if is_new %}Create New Template{% else %}Edit Template{% endif %}</h2>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-danger" id="errorAlert" style="display: none;"></div>
+                    <div class="alert alert-success" id="successAlert" style="display: none;"></div>
+
+                    <form id="templateForm">
+                        <!-- Basic Information -->
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="templateName" class="form-label">Template Name *</label>
+                                <input type="text" class="form-control" id="templateName" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="templateVersion" class="form-label">Version</label>
+                                <input type="text" class="form-control" id="templateVersion" value="1.0.0">
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="templateDescription" class="form-label">Description</label>
+                            <textarea class="form-control" id="templateDescription" rows="3"></textarea>
+                        </div>
+
+                        <!-- Template Type -->
+                        <div class="mb-3">
+                            <label class="form-label">Template Type</label>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="templateType" id="customTemplate"
+                                    value="custom" checked>
+                                <label class="form-check-label" for="customTemplate">
+                                    Custom Template (define your own attributes)
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="templateType" id="ontologyTemplate"
+                                    value="ontology">
+                                <label class="form-check-label" for="ontologyTemplate">
+                                    Based on Ontology (select an ontology type)
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Ontology Type Selection (hidden by default) -->
+                        <div id="ontologySelection" class="mb-3" style="display: none;">
+                            <label for="ontologyType" class="form-label">Ontology Type</label>
+                            <select class="form-select" id="ontologyType">
+                                <option value="">Select an ontology type...</option>
+                            </select>
+                        </div>
+
+                        <!-- Attributes Section -->
+                        <div class="mb-4">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h4>Attributes</h4>
+                                <button type="button" class="btn btn-success btn-sm" id="addAttributeBtn">
+                                    <i class="bi bi-plus-circle"></i> Add Attribute
+                                </button>
+                            </div>
+
+                            <div id="attributesContainer">
+                                <!-- Attributes will be dynamically added here -->
+                                <div class="alert alert-info">
+                                    No attributes defined yet. Click "Add Attribute" to create one.
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="d-flex justify-content-between">
+                            <a href="/api/v1/manage/templates" class="btn btn-secondary">Cancel</a>
+                            <div>
+                                <button type="button" class="btn btn-primary me-2" id="saveTemplate">
+                                    <i class="bi bi-save"></i> Save Template
+                                </button>
+                                {% if not is_new %}
+                                <button type="button" class="btn btn-danger" id="deleteTemplate">
+                                    <i class="bi bi-trash"></i> Delete Template
+                                </button>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Attribute Template (hidden) -->
+<div id="attributeTemplate" style="display: none;">
+    <div class="attribute-container">
+        <div class="attribute-row">
+            <button type="button" class="btn btn-sm btn-danger remove-btn">
+                <i class="bi bi-x"></i>
+            </button>
+
+            <div class="row mb-2">
+                <div class="col-md-4">
+                    <label class="form-label">Attribute Name *</label>
+                    <input type="text" class="form-control attr-name" required>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Data Type *</label>
+                    <select class="form-select attr-type" required>
+                        <option value="">Select type...</option>
+                        <option value="number">Number</option>
+                        <option value="string">String</option>
+                        <option value="boolean">Boolean</option>
+                        <option value="object">Object</option>
+                        <option value="array">Array</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Unit of Measure</label>
+                    <input type="text" class="form-control attr-unit" placeholder="e.g., °C, m/s, %">
+                </div>
+            </div>
+
+            <div class="row mb-2">
+                <div class="col-md-12">
+                    <label class="form-label">Description</label>
+                    <input type="text" class="form-control attr-description" placeholder="Optional description">
+                </div>
+            </div>
+
+            <div class="constraint-group">
+                <h6>Constraints</h6>
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="form-check">
+                            <input class="form-check-input attr-required" type="checkbox">
+                            <label class="form-check-label">Required</label>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Min Value</label>
+                        <input type="number" class="form-control attr-min" step="any">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Max Value</label>
+                        <input type="number" class="form-control attr-max" step="any">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Default Value</label>
+                        <input type="text" class="form-control attr-default">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // Check if we're editing an existing template
+        const isEditing = {% if not is_new %}true{% else %}false{% endif %};
+    const templateId = {% if template_id %}'{{ template_id }}'{% else %} null{% endif %};
+    const sourceType = {% if source_type %}'{{ source_type }}'{% else %} null{% endif %};
+
+    // Load ontology types
+    loadOntologyTypes();
+
+    // If we have a source type, set up the form for ontology-based template
+    if (sourceType) {
+        document.getElementById('ontologyTemplate').checked = true;
+        document.getElementById('ontologySelection').style.display = 'block';
+        document.getElementById('ontologyType').value = sourceType;
+        createAttributeFromOntology(sourceType);
+    }
+
+    // If we're editing, load the template data
+    if (isEditing && templateId) {
+        loadTemplateData(templateId);
+    }
+
+    // Event listeners
+    document.querySelectorAll('input[name="templateType"]').forEach(radio => {
+        radio.addEventListener('change', function () {
+            const ontologySelection = document.getElementById('ontologySelection');
+            if (this.value === 'ontology') {
+                ontologySelection.style.display = 'block';
+            } else {
+                ontologySelection.style.display = 'none';
+            }
+        });
+    });
+
+    document.getElementById('addAttributeBtn').addEventListener('click', addAttribute);
+    document.getElementById('saveTemplate').addEventListener('click', saveTemplate);
+
+    if (document.getElementById('deleteTemplate')) {
+        document.getElementById('deleteTemplate').addEventListener('click', deleteTemplate);
+    }
+
+    document.getElementById('ontologyType').addEventListener('change', function () {
+        if (this.value) {
+            createAttributeFromOntology(this.value);
+        }
+    });
+});
+
+    async function loadOntologyTypes() {
+        try {
+            const response = await apiRequest('/sensors/types');
+            const types = response;
+
+            const select = document.getElementById('ontologyType');
+            select.innerHTML = '<option value="">Select an ontology type...</option>';
+
+            types.forEach(type => {
+                const option = document.createElement('option');
+                option.value = type;
+                option.textContent = type;
+                select.appendChild(option);
+            });
+        } catch (error) {
+            console.error('Error loading ontology types:', error);
+        }
+    }
+
+    async function createAttributeFromOntology(sensorType) {
+        try {
+            const response = await apiRequest(`/sensors/types/${sensorType}`);
+            const sensorDetails = response.details;
+
+            // Clear existing attributes
+            document.getElementById('attributesContainer').innerHTML = '';
+
+            // Create attribute based on ontology
+            const attributeDiv = createAttributeElement();
+            const container = document.getElementById('attributesContainer');
+            container.appendChild(attributeDiv);
+
+            // Fill in the details
+            attributeDiv.querySelector('.attr-name').value = sensorType;
+            attributeDiv.querySelector('.attr-type').value = 'number';
+
+            if (sensorDetails.unitMeasure && sensorDetails.unitMeasure.length > 0) {
+                attributeDiv.querySelector('.attr-unit').value = sensorDetails.unitMeasure[0];
+            }
+
+            if (sensorDetails.min !== undefined) {
+                attributeDiv.querySelector('.attr-min').value = sensorDetails.min;
+            }
+
+            if (sensorDetails.max !== undefined) {
+                attributeDiv.querySelector('.attr-max').value = sensorDetails.max;
+            }
+
+            attributeDiv.querySelector('.attr-description').value = `Sensor data for ${sensorType}`;
+
+        } catch (error) {
+            console.error('Error creating attribute from ontology:', error);
+        }
+    }
+
+    function addAttribute() {
+        const container = document.getElementById('attributesContainer');
+
+        // Remove the "no attributes" message if it exists
+        const alertInfo = container.querySelector('.alert-info');
+        if (alertInfo) {
+            alertInfo.remove();
+        }
+
+        const attributeDiv = createAttributeElement();
+        container.appendChild(attributeDiv);
+    }
+
+    function createAttributeElement() {
+        const template = document.getElementById('attributeTemplate');
+        const clone = template.cloneNode(true);
+        clone.id = '';
+        clone.style.display = 'block';
+
+        // Add remove functionality
+        const removeBtn = clone.querySelector('.remove-btn');
+        removeBtn.addEventListener('click', function () {
+            clone.remove();
+
+            // If no attributes left, show the info message
+            const container = document.getElementById('attributesContainer');
+            if (container.children.length === 0) {
+                container.innerHTML = '<div class="alert alert-info">No attributes defined yet. Click "Add Attribute" to create one.</div>';
+            }
+        });
+
+        return clone;
+    }
+
+    async function saveTemplate() {
+        try {
+            const templateData = collectTemplateData();
+
+            if (!validateTemplateData(templateData)) {
+                return;
+            }
+
+            const isEditing = {% if not is_new %}true{% else %} false{% endif %};
+        const templateId = {% if template_id %} '{{ template_id }}'{% else %} null{% endif %};
+
+    let response;
+    if (isEditing && templateId) {
+        response = await apiRequest(`/templates/${templateId}`, 'PUT', templateData);
+    } else {
+        response = await apiRequest('/templates', 'POST', templateData);
+    }
+
+    showSuccess('Template saved successfully!');
+
+    // Redirect to templates list after a short delay
+    setTimeout(() => {
+        window.location.href = '/api/v1/manage/templates';
+    }, 1500);
+        
+    } catch (error) {
+        console.error('Error saving template:', error);
+        showError('Error saving template: ' + error.message);
+    }
+}
+
+    function collectTemplateData() {
+        const name = document.getElementById('templateName').value;
+        const description = document.getElementById('templateDescription').value;
+        const version = document.getElementById('templateVersion').value;
+        const isOntologyBased = document.getElementById('ontologyTemplate').checked;
+
+        const attributes = {};
+        const attributeElements = document.querySelectorAll('.attribute-row');
+
+        attributeElements.forEach(element => {
+            const name = element.querySelector('.attr-name').value;
+            const type = element.querySelector('.attr-type').value;
+            const unit = element.querySelector('.attr-unit').value;
+            const description = element.querySelector('.attr-description').value;
+            const required = element.querySelector('.attr-required').checked;
+            const minValue = element.querySelector('.attr-min').value;
+            const maxValue = element.querySelector('.attr-max').value;
+            const defaultValue = element.querySelector('.attr-default').value;
+
+            if (name && type) {
+                const constraints = {
+                    required: required
+                };
+
+                if (minValue !== '') constraints.min_value = parseFloat(minValue);
+                if (maxValue !== '') constraints.max_value = parseFloat(maxValue);
+
+                attributes[name] = {
+                    name: name,
+                    type: type,
+                    unit_measure: unit || null,
+                    description: description || '',
+                    constraints: constraints,
+                    default_value: defaultValue || null
+                };
+            }
+        });
+
+        return {
+            name: name,
+            description: description,
+            version: version,
+            attributes: attributes,
+            is_ontology_based: isOntologyBased,
+            metadata: {}
+        };
+    }
+
+    function validateTemplateData(data) {
+        if (!data.name.trim()) {
+            showError('Template name is required');
+            return false;
+        }
+
+        if (Object.keys(data.attributes).length === 0) {
+            showError('At least one attribute is required');
+            return false;
+        }
+
+        return true;
+    }
+
+    async function deleteTemplate() {
+        if (!confirm('Are you sure you want to delete this template? This action cannot be undone.')) {
+            return;
+        }
+
+        try {
+            const templateId = {% if template_id %}'{{ template_id }}'{% else %} null{% endif %};
+        await apiRequest(`/templates/${templateId}`, 'DELETE');
+
+        showSuccess('Template deleted successfully!');
+
+        setTimeout(() => {
+            window.location.href = '/api/v1/manage/templates';
+        }, 1500);
+
+    } catch (error) {
+        console.error('Error deleting template:', error);
+        showError('Error deleting template: ' + error.message);
+    }
+}
+
+    async function loadTemplateData(templateId) {
+        try {
+            const template = await apiRequest(`/templates/${templateId}`);
+
+            // Fill basic information
+            document.getElementById('templateName').value = template.name;
+            document.getElementById('templateDescription').value = template.description || '';
+            document.getElementById('templateVersion').value = template.version || '1.0.0';
+
+            // Set template type
+            if (template.is_ontology_based) {
+                document.getElementById('ontologyTemplate').checked = true;
+                document.getElementById('ontologySelection').style.display = 'block';
+            }
+
+            // Clear and populate attributes
+            const container = document.getElementById('attributesContainer');
+            container.innerHTML = '';
+
+            Object.entries(template.attributes || {}).forEach(([attrName, attrDef]) => {
+                const attributeDiv = createAttributeElement();
+                container.appendChild(attributeDiv);
+
+                // Fill attribute data
+                attributeDiv.querySelector('.attr-name').value = attrName;
+                attributeDiv.querySelector('.attr-type').value = attrDef.type;
+                attributeDiv.querySelector('.attr-unit').value = attrDef.unit_measure || '';
+                attributeDiv.querySelector('.attr-description').value = attrDef.description || '';
+
+                if (attrDef.constraints) {
+                    attributeDiv.querySelector('.attr-required').checked = attrDef.constraints.required || false;
+                    if (attrDef.constraints.min_value !== null && attrDef.constraints.min_value !== undefined) {
+                        attributeDiv.querySelector('.attr-min').value = attrDef.constraints.min_value;
+                    }
+                    if (attrDef.constraints.max_value !== null && attrDef.constraints.max_value !== undefined) {
+                        attributeDiv.querySelector('.attr-max').value = attrDef.constraints.max_value;
+                    }
+                }
+
+                if (attrDef.default_value !== null && attrDef.default_value !== undefined) {
+                    attributeDiv.querySelector('.attr-default').value = attrDef.default_value;
+                }
+            });
+
+        } catch (error) {
+            console.error('Error loading template data:', error);
+            showError('Error loading template data: ' + error.message);
+        }
+    }
+
+    function showError(message) {
+        const errorAlert = document.getElementById('errorAlert');
+        errorAlert.textContent = message;
+        errorAlert.style.display = 'block';
+
+        const successAlert = document.getElementById('successAlert');
+        successAlert.style.display = 'none';
+
+        // Scroll to top
+        window.scrollTo(0, 0);
+    }
+
+    function showSuccess(message) {
+        const successAlert = document.getElementById('successAlert');
+        successAlert.textContent = message;
+        successAlert.style.display = 'block';
+
+        const errorAlert = document.getElementById('errorAlert');
+        errorAlert.style.display = 'none';
+
+        // Scroll to top
+        window.scrollTo(0, 0);
+    }
+</script>
+{% endblock %}

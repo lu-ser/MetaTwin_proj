@@ -65,8 +65,8 @@
                             <option value="" selected disabled>Select a template...</option>
                         </select>
                         <div class="form-text">
-                            <a href="/templates" target="_blank">Manage templates</a> or <a href="/api/v1/template/new"
-                                target="_blank">create a new template</a>
+                            <a href="/api/v1/manage/templates" target="_blank">Manage templates</a> or
+                            <a href="/api/v1/manage/template/new" target="_blank">create a new template</a>
                         </div>
                     </div>
 
@@ -134,26 +134,31 @@
 
 {% block scripts %}
 <script src="{{ url_for('static', path='/js/devices.js') }}"></script>
+<script src="{{ url_for('static', path='/js/common.js') }}"></script>
 <script>
-    // Toggle between ontology-based and template-based device configuration
     document.querySelectorAll('input[name="device-config-type"]').forEach(radio => {
         radio.addEventListener('change', function () {
             const isOntologyBased = this.value === 'ontology';
             document.getElementById('ontology-config').style.display = isOntologyBased ? 'block' : 'none';
             document.getElementById('template-config').style.display = isOntologyBased ? 'none' : 'block';
             document.getElementById('ontology-attributes').style.display = isOntologyBased ? 'block' : 'none';
-            document.getElementById('template-attributes').style.display = isOntologyBased ? 'block' : 'none';
+            document.getElementById('template-attributes').style.display = isOntologyBased ? 'none' : 'block';
 
             // Reset attributes list when switching between types
             document.getElementById('attributes-list').innerHTML = '';
+
+            // Load templates when switching to template-based
+            if (!isOntologyBased && this.value === 'template') {
+                loadTemplatesForDevices();
+            }
         });
     });
 
     // Load templates when template-based is selected
-    document.getElementById('template-based').addEventListener('change', async function () {
+    async function loadTemplatesForDevices() {
         try {
-            const response = await fetchWithAuth('/api/templates');
-            const templates = await response.json();
+            console.log('Loading templates...');
+            const templates = await apiRequest('/templates');
 
             const templateDropdown = document.getElementById('template-dropdown');
             templateDropdown.innerHTML = '<option value="" selected disabled>Select a template...</option>';
@@ -167,8 +172,9 @@
             });
         } catch (error) {
             console.error('Error loading templates:', error);
+            showError('Error loading templates: ' + error.message);
         }
-    });
+    }
 
     // Load template attributes when a template is selected
     document.getElementById('template-dropdown').addEventListener('change', function () {
@@ -188,20 +194,20 @@
                 const row = document.createElement('div');
                 row.className = 'row mb-3';
                 row.innerHTML = `
-                    <div class="col-md-4">
-                        <label class="form-label">${attrName}</label>
-                        <div class="form-text">${attrDef.description || ''}</div>
-                    </div>
-                    <div class="col-md-4">
-                        <input type="${getInputType(attrDef.type)}" class="form-control template-attr-input" 
-                               id="template-attr-${attrName}" data-attr-name="${attrName}" 
-                               data-attr-type="${attrDef.type}" placeholder="Value"
-                               ${getInputConstraints(attrDef)}>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="form-text">${attrDef.unit_measure || ''}</div>
-                    </div>
-                `;
+                <div class="col-md-4">
+                    <label class="form-label">${attrName}</label>
+                    <div class="form-text">${attrDef.description || ''}</div>
+                </div>
+                <div class="col-md-4">
+                    <input type="${getInputType(attrDef.type)}" class="form-control template-attr-input" 
+                           id="template-attr-${attrName}" data-attr-name="${attrName}" 
+                           data-attr-type="${attrDef.type}" placeholder="Value"
+                           ${getInputConstraints(attrDef)}>
+                </div>
+                <div class="col-md-4">
+                    <div class="form-text">${attrDef.unit_measure || ''}</div>
+                </div>
+            `;
                 container.appendChild(row);
             });
         }
@@ -256,28 +262,23 @@
             // Handle ontology-based device
             const deviceType = document.getElementById('device-type-dropdown').value;
             if (!deviceType) {
-                alert('Please select a device type');
+                showError('Please select a device type');
                 return;
             }
             deviceData.device_type = deviceType;
 
-            // Get attributes from the attributes list
-            const attrItems = document.querySelectorAll('.attr-item');
-            attrItems.forEach(item => {
-                const attrName = item.dataset.attrName;
-                const attrValue = parseFloat(item.dataset.attrValue);
-                const attrUnit = item.dataset.attrUnit || '';
-
+            // Get attributes from currentAttributes object (defined in devices.js)
+            for (const [attrName, attrData] of Object.entries(currentAttributes)) {
                 deviceData.attributes[attrName] = {
-                    value: attrValue,
-                    unit_measure: attrUnit
+                    value: attrData.value,
+                    unit_measure: attrData.unit_measure
                 };
-            });
+            }
         } else {
             // Handle template-based device
             const templateId = document.getElementById('template-dropdown').value;
             if (!templateId) {
-                alert('Please select a template');
+                showError('Please select a template');
                 return;
             }
             deviceData.template_id = templateId;
@@ -291,7 +292,7 @@
                 if (input.dataset.attrType === 'boolean') {
                     attrValue = input.checked;
                 } else if (input.dataset.attrType === 'number') {
-                    attrValue = parseFloat(input.value);
+                    attrValue = parseFloat(input.value) || 0;
                 } else {
                     attrValue = input.value;
                 }
@@ -311,25 +312,57 @@
         }
 
         try {
-            const response = await fetchWithAuth('/api/devices', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(deviceData)
-            });
+            const device = await apiRequest('/devices', 'POST', deviceData);
+            showSuccess('Device created successfully!');
 
-            if (response.ok) {
-                alert('Device created successfully!');
-                location.reload();
-            } else {
-                const errorData = await response.json();
-                alert(`Error: ${errorData.detail || 'Unknown error'}`);
-            }
+            // Reset form
+            document.getElementById('create-device-form').reset();
+            document.getElementById('attributes-list').innerHTML = '';
+            Object.keys(currentAttributes).forEach(key => delete currentAttributes[key]);
+
+            // Reload devices list
+            loadDevicesList();
+
+            // Show details of the new device
+            showDeviceDetails(device.id);
         } catch (error) {
             console.error('Error creating device:', error);
-            alert('Error creating device. Please try again.');
+            showError(`Error creating device: ${error.message}`);
         }
     });
+
+    function showError(message) {
+        const alertDiv = document.createElement('div');
+        alertDiv.className = 'alert alert-danger alert-dismissible fade show';
+        alertDiv.setAttribute('role', 'alert');
+        alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    `;
+
+        const container = document.querySelector('.container');
+        container.insertBefore(alertDiv, container.firstChild);
+
+        setTimeout(() => {
+            alertDiv.remove();
+        }, 5000);
+    }
+
+    function showSuccess(message) {
+        const alertDiv = document.createElement('div');
+        alertDiv.className = 'alert alert-success alert-dismissible fade show';
+        alertDiv.setAttribute('role', 'alert');
+        alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    `;
+
+        const container = document.querySelector('.container');
+        container.insertBefore(alertDiv, container.firstChild);
+
+        setTimeout(() => {
+            alertDiv.remove();
+        }, 3000);
+    }
 </script>
 {% endblock %}

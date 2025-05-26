@@ -1,4 +1,4 @@
-# app/ui/views.py
+# app/ui/views.py - Versione corretta senza conflitti di routing
 from fastapi import APIRouter, Request, Query, Depends, HTTPException, Cookie
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
@@ -44,6 +44,7 @@ async def login_page(request: Request):
         }
     )
 
+# RIPRISTINATO: /dashboard non ha conflitti con API
 @router.get("/dashboard", response_class=HTMLResponse)
 async def dashboard(request: Request, dt: str = Query(None), current_user: Any = Depends(get_current_ui_user)):
     """Renderizza la dashboard dei Digital Twins
@@ -59,7 +60,8 @@ async def dashboard(request: Request, dt: str = Query(None), current_user: Any =
         }
     )
 
-@router.get("/devices", response_class=HTMLResponse)
+# CAMBIATO: da /devices a /manage/devices per evitare conflitti
+@router.get("/manage/devices", response_class=HTMLResponse)
 async def devices(request: Request, current_user: Any = Depends(get_current_ui_user)):
     """Renderizza la pagina di gestione dei dispositivi"""
     return templates.TemplateResponse(
@@ -70,7 +72,8 @@ async def devices(request: Request, current_user: Any = Depends(get_current_ui_u
         }
     )
 
-@router.get("/users", response_class=HTMLResponse)
+# CAMBIATO: da /users a /manage/users per evitare conflitti
+@router.get("/manage/users", response_class=HTMLResponse)
 async def users(request: Request, current_user: Any = Depends(get_current_ui_user)):
     """Renderizza la pagina di gestione degli utenti"""
     return templates.TemplateResponse(
@@ -81,7 +84,8 @@ async def users(request: Request, current_user: Any = Depends(get_current_ui_use
         }
     )
 
-@router.get("/templates", response_class=HTMLResponse)
+# CAMBIATO: da /templates a /manage/templates per evitare conflitti
+@router.get("/manage/templates", response_class=HTMLResponse)
 async def templates_page(request: Request, template_id: str = Query(None), current_user: Any = Depends(get_current_ui_user)):
     """Renderizza la pagina di gestione dei template
     
@@ -96,7 +100,8 @@ async def templates_page(request: Request, template_id: str = Query(None), curre
         }
     )
 
-@router.get("/template/new", response_class=HTMLResponse)
+# CAMBIATO: da /template/new a /manage/template/new
+@router.get("/manage/template/new", response_class=HTMLResponse)
 async def new_template(request: Request, source_type: Optional[str] = Query(None), current_user: Any = Depends(get_current_ui_user)):
     """Renderizza la pagina di creazione di un nuovo template
     
@@ -112,7 +117,8 @@ async def new_template(request: Request, source_type: Optional[str] = Query(None
         }
     )
 
-@router.get("/template/{template_id}", response_class=HTMLResponse)
+# CAMBIATO: da /template/{template_id} a /manage/template/{template_id}
+@router.get("/manage/template/{template_id}", response_class=HTMLResponse)
 async def edit_template(request: Request, template_id: str, current_user: Any = Depends(get_current_ui_user)):
     """Renderizza la pagina di modifica di un template esistente"""
     return templates.TemplateResponse(
