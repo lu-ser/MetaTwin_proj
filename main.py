@@ -78,9 +78,15 @@ if __name__ == "__main__":
     print(f"CLASS_HIERARCHY_PATH: {settings.CLASS_HIERARCHY_PATH}")
     print(f"File exists: {Path(settings.CLASS_HIERARCHY_PATH).exists()}")
     
+    # Check if running in PythonAnywhere environment
+    is_pythonanywhere = "PYTHONANYWHERE_DOMAIN" in os.environ
+    
+    # Use default port if in PythonAnywhere, otherwise use the configured port
+    port = 8000 if is_pythonanywhere else settings.PORT
+    
     uvicorn.run(
         "main:app", 
         host=settings.HOST, 
-        port=settings.PORT, 
+        port=port, 
         reload=settings.DEBUG
     )
