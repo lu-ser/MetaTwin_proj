@@ -8,7 +8,7 @@ IS_PYTHONANYWHERE = "PYTHONANYWHERE_DOMAIN" in os.environ or "/home/" in str(Pat
 if IS_PYTHONANYWHERE:
     # Use PythonAnywhere specific config
     from app.config_pythonanywhere import *
-    ROOT_DIR = Path("/home/lser93/mysite")  # Sostituisci con il tuo username
+    ROOT_DIR = Path("/home/lser93/MetaTwin_proj")  # Sostituisci con il tuo username
 else:
     # Use local config
     from app.config import settings, ROOT_DIR, DATA_DIR

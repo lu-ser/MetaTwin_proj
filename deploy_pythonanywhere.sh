@@ -8,7 +8,7 @@ export MONGODB_URL="your_atlas_connection_string"
 export SECRET_KEY="your-secret-key"
 
 # Install requirements
-pip3.10 install --user -r requirements.txt
+pip3.12 install --user -r requirements.txt
 
 # Create data directory
 mkdir -p /home/lser93/mysite/data
