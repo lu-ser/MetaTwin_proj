@@ -1,7 +1,7 @@
 {
     "info": {
-        "_postman_id": "digital-twin-platform",
-        "name": "Digital Twin Platform API",
+        "_postman_id": "digital-twin-platform_v2",
+        "name": "Digital Twin Platform API_v2",
         "description": "Complete API collection for Digital Twin Platform testing",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
     },

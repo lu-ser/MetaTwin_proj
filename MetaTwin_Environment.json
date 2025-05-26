@@ -4,7 +4,7 @@
     "values": [
         {
             "key": "base_url",
-            "value": "http://127.0.0.1:8000/api/v1",
+            "value": "http://192.167.133.40:8081/api/v1",
             "description": "Base URL for the API",
             "enabled": true
         },
