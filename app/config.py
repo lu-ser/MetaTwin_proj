@@ -9,9 +9,10 @@ from pathlib import Path
 load_dotenv(override=True)
 
 # Define application paths
-ROOT_DIR = Path(__file__).parent.parent
+ROOT_DIR = Path(__file__).parent.parent.absolute()
 DATA_DIR = os.getenv("DATA_DIR", str(ROOT_DIR / "data"))
-CLASS_HIERARCHY_PATH = os.getenv("CLASS_HIERARCHY_PATH", str(Path(ROOT_DIR) / "data" / "class_hierarchy.json"))
+CLASS_HIERARCHY_FILE = "class_hierarchy.json"
+CLASS_HIERARCHY_PATH = os.getenv("CLASS_HIERARCHY_PATH", str(ROOT_DIR / "data" / CLASS_HIERARCHY_FILE))
 
 class Settings(BaseSettings):
     # Database configuration
@@ -36,8 +37,7 @@ class Settings(BaseSettings):
     # File paths
     DATA_DIR: str = DATA_DIR
     CLASS_HIERARCHY_PATH: str = CLASS_HIERARCHY_PATH
-    if not CLASS_HIERARCHY_PATH:
-        CLASS_HIERARCHY_PATH = str(Path(ROOT_DIR) / "data" / "class_hierarchy.json")
+    
     # Set ALLOW_ORIGINS as a class variable after initialization
     @model_validator(mode='after')
     def set_allow_origins(self):

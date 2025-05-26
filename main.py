@@ -17,9 +17,19 @@ data_dir.mkdir(exist_ok=True)
 ontology_file = Path(settings.CLASS_HIERARCHY_PATH)
 if not ontology_file.exists():
     import shutil
-    src_file = ROOT_DIR / "class_hierarchy.json"
+    src_file = ROOT_DIR / "data" / "class_hierarchy.json"
     if src_file.exists():
         shutil.copy(src_file, ontology_file)
+    else:
+        print(f"Warning: Could not find source file at {src_file}")
+        print(f"Looking for class_hierarchy.json in: {ROOT_DIR}")
+        # Try to find it in the root directory
+        alt_src_file = ROOT_DIR / "class_hierarchy.json"
+        if alt_src_file.exists():
+            shutil.copy(alt_src_file, ontology_file)
+            print(f"Copied from {alt_src_file} instead")
+        else:
+            print(f"Error: Could not find class_hierarchy.json in {ROOT_DIR}")
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -62,6 +72,12 @@ async def root():
     }
 
 if __name__ == "__main__":
+    # Print debug information
+    print(f"ROOT_DIR: {ROOT_DIR}")
+    print(f"DATA_DIR: {DATA_DIR}")
+    print(f"CLASS_HIERARCHY_PATH: {settings.CLASS_HIERARCHY_PATH}")
+    print(f"File exists: {Path(settings.CLASS_HIERARCHY_PATH).exists()}")
+    
     uvicorn.run(
         "main:app", 
         host=settings.HOST, 

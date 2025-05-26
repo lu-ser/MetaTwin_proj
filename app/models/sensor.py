@@ -3,10 +3,12 @@ from pydantic import BaseModel, Field, validator
 from typing import Dict, List, Optional, Any, Union
 import json
 import os
+from pathlib import Path
 from app.config import settings
 
-
-with open(settings.CLASS_HIERARCHY_PATH, "r") as f:
+# Use Path to ensure cross-platform compatibility
+hierarchy_path = Path(settings.CLASS_HIERARCHY_PATH)
+with open(hierarchy_path, "r") as f:
     CLASS_HIERARCHY = json.load(f)
 
 class SensorAttribute(BaseModel):
