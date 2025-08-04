@@ -14,6 +14,10 @@ class SensorMeasurement(BaseModel):
     value: float
     unit_measure: str = ""
 
+class BatchSensorMeasurements(BaseModel):
+    """Rappresenta un batch di misurazioni di sensori"""
+    measurements: List[SensorMeasurement] = Field(..., min_items=1, max_items=1000)
+
 class SensorType(BaseModel):
     """Rappresenta un tipo di sensore dall'ontologia"""
     name: str

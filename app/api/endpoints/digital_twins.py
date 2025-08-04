@@ -2,7 +2,7 @@
 from fastapi import APIRouter, HTTPException, Body, Query, Depends
 from typing import List, Dict, Any, Optional
 from app.models.digital_twin import DigitalTwin
-from app.models.sensor import SensorMeasurement
+from app.models.sensor import SensorMeasurement, BatchSensorMeasurements
 from app.db.crud import get_document, update_document, delete_document, list_documents
 from app.services.digital_twin_service import add_sensor_data_to_digital_twin, generate_random_sensor_data
 from app.ontology.manager import OntologyManager
@@ -94,6 +94,69 @@ async def add_sensor_measurement(
         raise HTTPException(status_code=400, detail="Impossibile aggiungere i dati del sensore")
         
     return {"message": "Dati del sensore aggiunti con successo"}
+
+@router.post("/{digital_twin_id}/data/batch", status_code=201)
+async def add_batch_sensor_measurements(
+    digital_twin_id: str, 
+    batch: BatchSensorMeasurements,
+    authenticated_device = Depends(get_device_by_api_key)
+):
+    """
+    Aggiungi multiple misurazioni al digital twin in una singola richiesta
+    
+    Richiede autenticazione tramite API key del dispositivo
+    """
+    dt = await get_document("digital_twins", digital_twin_id)
+    if not dt:
+        raise HTTPException(status_code=404, detail="Digital Twin non trovato")
+    
+    # Verifica che il digital twin appartenga al dispositivo autenticato
+    if dt.get("device_id") != authenticated_device.get("id"):
+        raise HTTPException(
+            status_code=403,
+            detail="Non sei autorizzato a inviare dati a questo Digital Twin"
+        )
+    
+    # Verifica che tutti i sensori siano compatibili con il digital twin
+    compatible_sensors = dt.get("compatible_sensors", [])
+    failed_measurements = []
+    successful_count = 0
+    
+    for i, measurement in enumerate(batch.measurements):
+        if measurement.attribute_name not in compatible_sensors:
+            failed_measurements.append({
+                "index": i,
+                "attribute_name": measurement.attribute_name,
+                "error": f"Il sensore '{measurement.attribute_name}' non è compatibile con questo Digital Twin"
+            })
+            continue
+            
+        success = await add_sensor_data_to_digital_twin(
+            digital_twin_id,
+            measurement.attribute_name,
+            measurement.value,
+            measurement.timestamp
+        )
+        
+        if success:
+            successful_count += 1
+        else:
+            failed_measurements.append({
+                "index": i,
+                "attribute_name": measurement.attribute_name,
+                "error": "Impossibile aggiungere i dati del sensore"
+            })
+    
+    result = {
+        "message": f"Processate {len(batch.measurements)} misurazioni",
+        "successful": successful_count,
+        "failed": len(failed_measurements)
+    }
+    
+    if failed_measurements:
+        result["errors"] = failed_measurements
+    
+    return result
 
 @router.post("/{digital_twin_id}/generate-data", status_code=201)
 async def generate_data(
